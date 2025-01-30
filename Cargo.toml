@@ -1,0 +1,16 @@
+[package]
+name = "aarch64-rt"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Startup code for aarch64 Cortex-A processors."
+authors = ["Andrew Walbran <qwandor@google.com>"]
+keywords = ["arm", "aarch64", "cortex-a"]
+categories = ["embedded", "no-std"]
+
+[dependencies]
+
+[features]
+default = ["el1", "exceptions"]
+el1 = []
+exceptions = []
