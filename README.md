@@ -30,9 +30,21 @@ to pass arguments from the previous-stage bootloader, such as the address of the
 
 ### `el1`
 
-Includes the entry point code for running at EL1. If the `exceptions` feature is also enabled then
-this uses `vbar_el1` for the exception vector. If `initial-pagetable` is also enabled then this uses
-`ttbr0_el1` for the page table.
+If the `exceptions` feature is also enabled then uses `vbar_el1` for the exception vector. If
+`initial-pagetable` is also enabled then uses `ttbr0_el1` for the page table, and other EL1 MMU
+configuration registers.
+
+### `el2`
+
+If the `exceptions` feature is also enabled then uses `vbar_el2` for the exception vector. If
+`initial-pagetable` is also enabled then uses `ttbr0_el2` for the page table, and other EL2 MMU
+configuration registers.
+
+### `el3`
+
+If the `exceptions` feature is also enabled then uses `vbar_el3` for the exception vector. If
+`initial-pagetable` is also enabled then uses `ttbr0_el3` for the page table, and other EL3 MMU
+configuration registers.
 
 ### `exceptions`
 

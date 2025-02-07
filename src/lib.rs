@@ -8,20 +8,42 @@
 #![deny(clippy::undocumented_unsafe_blocks)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
+#[cfg(any(
+    all(feature = "el1", feature = "el2"),
+    all(feature = "el1", feature = "el3"),
+    all(feature = "el2", feature = "el3"),
+))]
+compile_error!("Only one `el` feature may be enabled at once.");
+
 #[cfg(feature = "exceptions")]
 use core::arch::asm;
-#[cfg(any(feature = "el1", feature = "exceptions"))]
+#[cfg(any(
+    feature = "el1",
+    feature = "el2",
+    feature = "el3",
+    feature = "exceptions"
+))]
 use core::arch::global_asm;
 
+#[cfg(not(feature = "initial-pagetable"))]
+global_asm!(concat!(
+    include_str!("dummy_enable_mmu.S"),
+    include_str!("entry.S")
+));
 #[cfg(all(feature = "el1", feature = "initial-pagetable"))]
 global_asm!(concat!(
     include_str!("el1_enable_mmu.S"),
-    include_str!("el1_entry.S")
+    include_str!("entry.S")
 ));
-#[cfg(all(feature = "el1", not(feature = "initial-pagetable")))]
+#[cfg(all(feature = "el2", feature = "initial-pagetable"))]
 global_asm!(concat!(
-    include_str!("dummy_enable_mmu.S"),
-    include_str!("el1_entry.S")
+    include_str!("el2_enable_mmu.S"),
+    include_str!("entry.S")
+));
+#[cfg(all(feature = "el3", feature = "initial-pagetable"))]
+global_asm!(concat!(
+    include_str!("el3_enable_mmu.S"),
+    include_str!("entry.S")
 ));
 
 #[cfg(feature = "exceptions")]
@@ -34,6 +56,24 @@ extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
         asm!(
             "adr x30, vector_table",
             "msr vbar_el1, x30",
+            options(nomem, nostack),
+            out("x30") _,
+        );
+    }
+    #[cfg(all(feature = "el2", feature = "exceptions"))]
+    unsafe {
+        asm!(
+            "adr x30, vector_table",
+            "msr vbar_el2, x30",
+            options(nomem, nostack),
+            out("x30") _,
+        );
+    }
+    #[cfg(all(feature = "el3", feature = "exceptions"))]
+    unsafe {
+        asm!(
+            "adr x30, vector_table",
+            "msr vbar_el3, x30",
             options(nomem, nostack),
             out("x30") _,
         );

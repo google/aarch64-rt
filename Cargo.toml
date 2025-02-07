@@ -19,5 +19,7 @@ smccc = "0.1.1"
 [features]
 default = ["el1", "exceptions", "initial-pagetable"]
 el1 = []
+el2 = []
+el3 = []
 exceptions = []
 initial-pagetable = []
