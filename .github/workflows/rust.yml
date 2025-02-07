@@ -1,0 +1,39 @@
+name: Rust
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install aarch64 toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-unknown-none
+      - name: Build
+        run: cargo build
+      - name: Build for aarch64
+        run: cargo build --target=aarch64-unknown-none
+      - name: Build examples
+        run: cargo build --examples
+      - name: Build without default features
+        run: cargo build --examples --no-default-features
+      - name: Run clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Format Rust code
+        run: cargo fmt --all -- --check
