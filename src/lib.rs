@@ -17,34 +17,18 @@ compile_error!("Only one `el` feature may be enabled at once.");
 
 #[cfg(feature = "exceptions")]
 use core::arch::asm;
-#[cfg(any(
-    feature = "el1",
-    feature = "el2",
-    feature = "el3",
-    feature = "exceptions"
-))]
 use core::arch::global_asm;
 
+global_asm!(include_str!("entry.S"));
+
 #[cfg(not(feature = "initial-pagetable"))]
-global_asm!(concat!(
-    include_str!("dummy_enable_mmu.S"),
-    include_str!("entry.S")
-));
+global_asm!(include_str!("dummy_enable_mmu.S"),);
 #[cfg(all(feature = "el1", feature = "initial-pagetable"))]
-global_asm!(concat!(
-    include_str!("el1_enable_mmu.S"),
-    include_str!("entry.S")
-));
+global_asm!(include_str!("el1_enable_mmu.S"),);
 #[cfg(all(feature = "el2", feature = "initial-pagetable"))]
-global_asm!(concat!(
-    include_str!("el2_enable_mmu.S"),
-    include_str!("entry.S")
-));
+global_asm!(include_str!("el2_enable_mmu.S"));
 #[cfg(all(feature = "el3", feature = "initial-pagetable"))]
-global_asm!(concat!(
-    include_str!("el3_enable_mmu.S"),
-    include_str!("entry.S")
-));
+global_asm!(include_str!("el3_enable_mmu.S"));
 
 #[cfg(feature = "exceptions")]
 global_asm!(include_str!("exceptions.S"));

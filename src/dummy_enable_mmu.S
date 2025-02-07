@@ -5,5 +5,7 @@
  * See LICENSE-APACHE and LICENSE-MIT for details.
  */
 
-.macro enable_mmu
-.endm
+.section .init, "ax"
+.global enable_mmu
+enable_mmu:
+    ret

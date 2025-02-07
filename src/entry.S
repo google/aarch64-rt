@@ -10,13 +10,6 @@
     add \reg, \reg, :lo12:\sym
 .endm
 
-.macro mov_i, reg:req, imm:req
-    movz \reg, :abs_g3:\imm
-    movk \reg, :abs_g2_nc:\imm
-    movk \reg, :abs_g1_nc:\imm
-    movk \reg, :abs_g0_nc:\imm
-.endm
-
 /**
  * This is a generic entry point for an image. It carries out the operations required to prepare the
  * loaded image to be run. Specifically, it zeroes the bss section using registers x25 and above,
@@ -26,7 +19,7 @@
 .section .init.entry, "ax"
 .global entry
 entry:
-    enable_mmu
+    bl enable_mmu
 
     /* Disable trapping floating point access in EL1. */
     mrs x30, cpacr_el1

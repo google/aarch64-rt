@@ -46,25 +46,34 @@
 .set .Lsctlrval, .L_SCTLR_ELx_M | .L_SCTLR_ELx_C | .L_SCTLR_ELx_SA | .L_SCTLR_EL3_ITD | .L_SCTLR_EL3_SED
 .set .Lsctlrval, .Lsctlrval | .L_SCTLR_ELx_I | .L_SCTLR_EL3_SPAN | .L_SCTLR_EL3_RES1
 
-.macro enable_mmu
+.macro mov_i, reg:req, imm:req
+    movz \reg, :abs_g3:\imm
+    movk \reg, :abs_g2_nc:\imm
+    movk \reg, :abs_g1_nc:\imm
+    movk \reg, :abs_g0_nc:\imm
+.endm
+
+.section .init, "ax"
+.global enable_mmu
+enable_mmu:
     /*
      * Load and apply the memory management configuration, ready to enable MMU and
      * caches.
      */
-    adrp x30, idmap
-    msr ttbr0_el3, x30
+    adrp x28, idmap
+    msr ttbr0_el3, x28
 
-    mov_i x30, .Lmairval
-    msr mair_el3, x30
+    mov_i x28, .Lmairval
+    msr mair_el3, x28
 
-    mov_i x30, .Ltcrval
+    mov_i x28, .Ltcrval
     /* Copy the supported PA range into TCR_EL3.IPS. */
     mrs x29, id_aa64mmfr0_el1
-    bfi x30, x29, #32, #4
+    bfi x28, x29, #32, #4
 
-    msr tcr_el3, x30
+    msr tcr_el3, x28
 
-    mov_i x30, .Lsctlrval
+    mov_i x28, .Lsctlrval
 
     /*
      * Ensure everything before this point has completed, then invalidate any
@@ -80,6 +89,7 @@
      * Configure sctlr_el3 to enable MMU and cache and don't proceed until this
      * has completed.
      */
-    msr sctlr_el3, x30
+    msr sctlr_el3, x28
     isb
-.endm
+
+    ret
