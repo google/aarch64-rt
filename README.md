@@ -8,6 +8,81 @@ Cortex-A processors.
 
 This is not an officially supported Google product.
 
+## Usage
+
+Use the `entry!` macro to mark your main function:
+
+```rust
+use aarch64_rt::entry;
+
+entry!(main);
+fn main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
+    // ...
+}
+```
+
+`arg0` through `arg3` will contain the initial values of registers `x0`–`x3`. These are often used
+to pass arguments from the previous-stage bootloader, such as the address of the device tree.
+
+## Features
+
+`el1`, `exceptions` and `initial-pagetable` are enabled by default.
+
+### `el1`
+
+Includes the entry point code for running at EL1. If the `exceptions` feature is also enabled then
+this uses `vbar_el1` for the exception vector. If `initial-pagetable` is also enabled then this uses
+`ttbr0_el1` for the page table.
+
+### `exceptions`
+
+Provides an exception vector table, and sets it in the appropriate `vbar` system register for the
+selected exception level. You must provide handlers for each exception like so:
+
+```rust
+#[unsafe(no_mangle)]
+extern "C" fn sync_exception_current(_elr: u64, _spsr: u64) {
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn irq_current(_elr: u64, _spsr: u64) {
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn fiq_current(_elr: u64, _spsr: u64) {
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn serr_current(_elr: u64, _spsr: u64) {
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn sync_lower(_elr: u64, _spsr: u64) {
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn irq_lower(_elr: u64, _spsr: u64) {
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn fiq_lower(_elr: u64, _spsr: u64) {
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn serr_lower(_elr: u64, _spsr: u64) {
+}
+```
+
+### `initial-pagetable`
+
+Sets an initial pagetable in the appropriate TTBR and enables the MMU and cache before running any
+Rust code or writing to any memory.
+
+This is especially important if running at EL1 in a VM, as accessing memory with the cache disabled
+while the hypervisor or host has cacheable aliases to the same memory can lead to cache coherency
+issues. Even if the host doesn't explicitly access the memory, speculative accesses can lead to
+cache fills.
+
 ## License
 
 Licensed under either of
