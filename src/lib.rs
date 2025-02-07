@@ -35,6 +35,7 @@ global_asm!(include_str!("exceptions.S"));
 
 #[unsafe(no_mangle)]
 extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
+    // SAFETY: We provide a valid vector table.
     #[cfg(all(feature = "el1", feature = "exceptions"))]
     unsafe {
         asm!(
@@ -44,6 +45,7 @@ extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
             out("x30") _,
         );
     }
+    // SAFETY: We provide a valid vector table.
     #[cfg(all(feature = "el2", feature = "exceptions"))]
     unsafe {
         asm!(
@@ -53,6 +55,7 @@ extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
             out("x30") _,
         );
     }
+    // SAFETY: We provide a valid vector table.
     #[cfg(all(feature = "el3", feature = "exceptions"))]
     unsafe {
         asm!(
