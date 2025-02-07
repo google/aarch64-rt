@@ -111,5 +111,4 @@ macro_rules! initial_idmap {
 
 /// A hardcoded pagetable.
 #[repr(align(4096))]
-#[allow(dead_code)]
 pub struct InitialIdmap(pub [usize; 512]);
