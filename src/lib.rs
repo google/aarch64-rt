@@ -102,14 +102,14 @@ macro_rules! entry {
 /// The `initial-pagetable` feature must be enabled for this to be used.
 #[cfg(feature = "initial-pagetable")]
 #[macro_export]
-macro_rules! initial_idmap {
+macro_rules! initial_pagetable {
     ($value:expr) => {
-        #[unsafe(export_name = "idmap")]
-        #[unsafe(link_section = ".rodata.idmap")]
-        static INITIAL_IDMAP: $crate::InitialIdmap = $value;
+        #[unsafe(export_name = "initial_pagetable")]
+        #[unsafe(link_section = ".rodata.initial_pagetable")]
+        static INITIAL_PAGETABLE: $crate::InitialPagetable = $value;
     };
 }
 
 /// A hardcoded pagetable.
 #[repr(align(4096))]
-pub struct InitialIdmap(pub [usize; 512]);
+pub struct InitialPagetable(pub [usize; 512]);

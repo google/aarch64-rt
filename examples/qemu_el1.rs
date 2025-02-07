@@ -8,7 +8,7 @@
 #![no_main]
 
 use aarch64_paging::paging::Attributes;
-use aarch64_rt::{entry, initial_idmap, InitialIdmap};
+use aarch64_rt::{entry, initial_pagetable, InitialPagetable};
 use core::{fmt::Write, panic::PanicInfo};
 use pl011_uart::Uart;
 use smccc::{
@@ -32,7 +32,7 @@ const MEMORY_ATTRIBUTES: Attributes = Attributes::VALID
     .union(Attributes::ACCESSED)
     .union(Attributes::NON_GLOBAL);
 
-initial_idmap!({
+initial_pagetable!({
     let mut idmap = [0; 512];
     // 1 GiB of device memory.
     idmap[0] = DEVICE_ATTRIBUTES.bits();
@@ -40,7 +40,7 @@ initial_idmap!({
     idmap[1] = MEMORY_ATTRIBUTES.bits() | 0x40000000;
     // Another 1 GiB of device memory starting at 256 GiB.
     idmap[256] = DEVICE_ATTRIBUTES.bits() | 0x4000000000;
-    InitialIdmap(idmap)
+    InitialPagetable(idmap)
 });
 
 entry!(main);

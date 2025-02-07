@@ -60,7 +60,7 @@ enable_mmu:
      * Load and apply the memory management configuration, ready to enable MMU and
      * caches.
      */
-    adrp x28, idmap
+    adrp x28, initial_pagetable
     msr ttbr0_el3, x28
 
     mov_i x28, .Lmairval
