@@ -82,7 +82,6 @@ unsafe extern "Rust" {
 ///
 /// entry!(main);
 /// fn main() -> ! {
-///     log::set_max_level(LevelFilter::Info);
 ///     info!("Hello world");
 /// }
 /// ```
@@ -98,6 +97,9 @@ macro_rules! entry {
     };
 }
 
+/// Provides an initial pagetable which can be used before any Rust code is run.
+///
+/// The `initial-pagetable` feature must be enabled for this to be used.
 #[macro_export]
 macro_rules! initial_idmap {
     ($value:expr) => {

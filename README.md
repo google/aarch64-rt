@@ -24,6 +24,26 @@ fn main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
 `arg0` through `arg3` will contain the initial values of registers `x0`–`x3`. These are often used
 to pass arguments from the previous-stage bootloader, such as the address of the device tree.
 
+You'll need to provide the image origin (which will be the entry point address) and maximum size in a linker script, e.g.:
+
+```ld
+MEMORY
+{
+    image : ORIGIN = 0x40080000, LENGTH = 2M
+}
+```
+
+You'll need to tell Rust to use both this and the `aarch64-rt` linker script in your `build.rs`.
+Assuming your linker script is called `memory.ld`:
+
+```rust
+fn main() {
+    println!("cargo:rustc-link-arg=-Timage.ld");
+    println!("cargo:rustc-link-arg=-Tmemory.ld");
+    println!("cargo:rerun-if-changed=memory.ld");
+}
+```
+
 ## Features
 
 `el1`, `exceptions` and `initial-pagetable` are enabled by default.
