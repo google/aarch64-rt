@@ -8,6 +8,8 @@
 #![deny(clippy::undocumented_unsafe_blocks)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
+#[cfg(feature = "exceptions")]
+use core::arch::asm;
 #[cfg(any(feature = "el1", feature = "exceptions"))]
 use core::arch::global_asm;
 
@@ -27,6 +29,15 @@ global_asm!(include_str!("exceptions.S"));
 
 #[unsafe(no_mangle)]
 extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
+    #[cfg(all(feature = "el1", feature = "exceptions"))]
+    unsafe {
+        asm!(
+            "adr x30, vector_table",
+            "msr vbar_el1, x30",
+            options(nomem, nostack),
+            out("x30") _,
+        );
+    }
     main(arg0, arg1, arg2, arg3)
 }
 

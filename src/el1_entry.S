@@ -46,9 +46,5 @@ entry:
     adr_l x30, boot_stack_end
     mov sp, x30
 
-    /* Set up exception vector. */
-    adr x30, vector_table
-    msr vbar_el1, x30
-
     /* Call into Rust code. */
     b rust_entry
