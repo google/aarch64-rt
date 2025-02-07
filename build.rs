@@ -15,4 +15,7 @@ fn main() {
 
     println!("cargo::rustc-link-search={}", env::var("OUT_DIR").unwrap());
     println!("cargo::rerun-if-changed=image.ld");
+
+    println!("cargo::rustc-link-arg-examples=-Timage.ld");
+    println!("cargo::rustc-link-arg-examples=-Texamples/qemu.ld");
 }
