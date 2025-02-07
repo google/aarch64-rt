@@ -9,8 +9,10 @@ keywords = ["arm", "aarch64", "cortex-a"]
 categories = ["embedded", "no-std"]
 
 [dependencies]
+cfg-if = "1.0.0"
 
 [features]
-default = ["el1", "exceptions"]
+default = ["el1", "exceptions", "initial-pagetable"]
 el1 = []
 exceptions = []
+initial-pagetable = []

@@ -11,8 +11,16 @@
 #[cfg(any(feature = "el1", feature = "exceptions"))]
 use core::arch::global_asm;
 
-#[cfg(feature = "el1")]
-global_asm!(include_str!("el1_entry.S"));
+#[cfg(all(feature = "el1", feature = "initial-pagetable"))]
+global_asm!(concat!(
+    include_str!("el1_enable_mmu.S"),
+    include_str!("el1_entry.S")
+));
+#[cfg(all(feature = "el1", not(feature = "initial-pagetable")))]
+global_asm!(concat!(
+    include_str!("dummy_enable_mmu.S"),
+    include_str!("el1_entry.S")
+));
 
 #[cfg(feature = "exceptions")]
 global_asm!(include_str!("exceptions.S"));
@@ -51,3 +59,17 @@ macro_rules! entry {
         }
     };
 }
+
+#[macro_export]
+macro_rules! initial_idmap {
+    ($value:expr) => {
+        #[unsafe(export_name = "idmap")]
+        #[unsafe(link_section = ".rodata.idmap")]
+        static INITIAL_IDMAP: $crate::InitialIdmap = $value;
+    };
+}
+
+/// A hardcoded pagetable.
+#[repr(align(4096))]
+#[allow(dead_code)]
+pub struct InitialIdmap(pub [usize; 512]);
