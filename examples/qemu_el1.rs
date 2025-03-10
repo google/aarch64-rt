@@ -9,15 +9,15 @@
 
 use aarch64_paging::paging::Attributes;
 use aarch64_rt::{entry, initial_pagetable, InitialPagetable};
-use core::{fmt::Write, panic::PanicInfo};
-use pl011_uart::Uart;
+use arm_pl011_uart::{OwnedMmioPointer, PL011Registers, Uart};
+use core::{fmt::Write, panic::PanicInfo, ptr::NonNull};
 use smccc::{
     psci::{system_off, system_reset},
     Hvc,
 };
 
 /// Base address of the first PL011 UART.
-const PL011_BASE_ADDRESS: *mut u32 = 0x900_0000 as _;
+const PL011_BASE_ADDRESS: *mut PL011Registers = 0x900_0000 as _;
 
 /// Attributes to use for device memory in the initial identity map.
 const DEVICE_ATTRIBUTES: Attributes = Attributes::VALID
@@ -47,7 +47,8 @@ entry!(main);
 fn main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
     // SAFETY: The PL011 base address is mapped by the initial identity mapping, and this is the
     // only place we create something referring to it.
-    let mut uart = unsafe { Uart::new(PL011_BASE_ADDRESS) };
+    let mut uart =
+        Uart::new(unsafe { OwnedMmioPointer::new(NonNull::new(PL011_BASE_ADDRESS).unwrap()) });
 
     writeln!(
         uart,
