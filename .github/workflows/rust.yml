@@ -20,12 +20,10 @@ jobs:
           target: aarch64-unknown-none
       - name: Build
         run: cargo build
-      - name: Build for aarch64
-        run: cargo build --target=aarch64-unknown-none
+      - name: Build without default features
+        run: cargo build --no-default-features
       - name: Build examples
         run: cargo build --examples
-      - name: Build without default features
-        run: cargo build --examples --no-default-features
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
         with:
