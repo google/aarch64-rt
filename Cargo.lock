@@ -24,9 +24,9 @@ dependencies = [
 
 [[package]]
 name = "arm-pl011-uart"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fc2d83c175765fcbec10238b309ebe937247e938d3a9efcb32a96e69502a04e"
+checksum = "bed01fb1be86080a2e9d93ae75e485837712a497f6e729e8ea329151a982e032"
 dependencies = [
  "bitflags",
  "embedded-hal-nb",
@@ -96,9 +96,12 @@ dependencies = [
 
 [[package]]
 name = "safe-mmio"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30075950f15d2083592cdb9b5b175d48d332dacdc481c17546910e0c1e9cc4b1"
+checksum = "3bc59a975d8faa0b4475145266e9f9eac01f0b3f393d0e5eecc8b88646ca2d29"
+dependencies = [
+ "zerocopy",
+]
 
 [[package]]
 name = "smccc"
