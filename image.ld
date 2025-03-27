@@ -67,9 +67,11 @@ SECTIONS
 
 	.stack (NOLOAD) : ALIGN(4096) {
 		boot_stack_begin = .;
-		. += 40 * 4096;
+		KEEP(*(.stack.boot_stack))
 		. = ALIGN(4096);
 		boot_stack_end = .;
+
+		KEEP(*(.stack.*))
 	} >image
 
 	. = ALIGN(4K);
