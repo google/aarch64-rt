@@ -138,6 +138,12 @@ impl<const NUM_PAGES: usize> Stack<NUM_PAGES> {
     }
 }
 
+impl<const NUM_PAGES: usize> Default for Stack<NUM_PAGES> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[repr(C, align(4096))]
 struct StackPage([u8; 4096]);
 
