@@ -1,6 +1,6 @@
 [package]
 name = "aarch64-rt"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Startup code and exception vector for aarch64 Cortex-A processors."
