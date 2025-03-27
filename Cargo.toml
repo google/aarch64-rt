@@ -15,7 +15,7 @@ cfg-if = "1.0.0"
 [dev-dependencies]
 aarch64-paging = { version = "0.8.1", default-features = false }
 arm-pl011-uart = "0.3.0"
-smccc = "0.1.1"
+smccc = "0.2.0"
 
 [features]
 default = ["el1", "exceptions", "initial-pagetable"]
