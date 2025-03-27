@@ -73,7 +73,7 @@ unsafe extern "Rust" {
     safe fn main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> !;
 }
 
-/// Marks the main function of the binary.
+/// Marks the main function of the binary and reserves space for the boot stack.
 ///
 /// Example:
 ///
@@ -85,9 +85,20 @@ unsafe extern "Rust" {
 ///     info!("Hello world");
 /// }
 /// ```
+///
+/// 40 pages (160 KiB) is reserved for the boot stack by default; a different size may be configured
+/// by passing the number of pages as a second argument to the macro, e.g. `entry!(main, 10);` to
+/// reserve only 10 pages.
 #[macro_export]
 macro_rules! entry {
     ($name:path) => {
+        entry!($name, 40);
+    };
+    ($name:path, $boot_stack_pages:expr) => {
+        #[unsafe(export_name = "boot_stack")]
+        #[unsafe(link_section = ".stack.boot_stack")]
+        static mut __BOOT_STACK: $crate::Stack<$boot_stack_pages> = $crate::Stack::new();
+
         // Export a symbol with a name matching the extern declaration above.
         #[export_name = "main"]
         fn __main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
@@ -111,5 +122,27 @@ macro_rules! initial_pagetable {
 }
 
 /// A hardcoded pagetable.
-#[repr(align(4096))]
+#[repr(C, align(4096))]
 pub struct InitialPagetable(pub [usize; 512]);
+
+/// A stack for some CPU core.
+///
+/// This is used by the [`entry!`] macro to reserve space for the boot stack.
+#[repr(C, align(4096))]
+pub struct Stack<const NUM_PAGES: usize>([StackPage; NUM_PAGES]);
+
+impl<const NUM_PAGES: usize> Stack<NUM_PAGES> {
+    /// Creates a new zero-initialised stack.
+    pub const fn new() -> Self {
+        Self([const { StackPage::new() }; NUM_PAGES])
+    }
+}
+
+#[repr(C, align(4096))]
+struct StackPage([u8; 4096]);
+
+impl StackPage {
+    const fn new() -> Self {
+        Self([0; 4096])
+    }
+}
