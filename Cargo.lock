@@ -24,9 +24,9 @@ dependencies = [
 
 [[package]]
 name = "arm-pl011-uart"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bed01fb1be86080a2e9d93ae75e485837712a497f6e729e8ea329151a982e032"
+checksum = "ff5b0f1e39ec186e409c6fd80bbb83aa00622ca71c9c0561b5571df3b5f5391f"
 dependencies = [
  "bitflags",
  "embedded-hal-nb",
@@ -96,9 +96,9 @@ dependencies = [
 
 [[package]]
 name = "safe-mmio"
-version = "0.2.0"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bc59a975d8faa0b4475145266e9f9eac01f0b3f393d0e5eecc8b88646ca2d29"
+checksum = "234b67e8fbebeac5497e16b0f2af47512fd430164759b6925813c8738f1ec8aa"
 dependencies = [
  "zerocopy",
 ]
@@ -151,18 +151,18 @@ checksum = "a210d160f08b701c8721ba1c726c11662f877ea6b7094007e1ca9a1041945034"
 
 [[package]]
 name = "zerocopy"
-version = "0.8.23"
+version = "0.8.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd97444d05a4328b90e75e503a34bad781f14e28a823ad3557f0750df1ebcbc6"
+checksum = "2586fea28e186957ef732a5f8b3be2da217d65c5969d4b1e17f973ebbe876879"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.23"
+version = "0.8.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6352c01d0edd5db859a63e2605f4ea3183ddbd15e2c4a9e7d32184df75e4f154"
+checksum = "a996a8f63c5c4448cd959ac1bab0aaa3306ccfd060472f85943ee0750f0169be"
 dependencies = [
  "proc-macro2",
  "quote",
