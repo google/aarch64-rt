@@ -65,12 +65,12 @@ extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
             out("x30") _,
         );
     }
-    main(arg0, arg1, arg2, arg3)
+    __main(arg0, arg1, arg2, arg3)
 }
 
 unsafe extern "Rust" {
     /// Main function provided by the application using the `main!` macro.
-    safe fn main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> !;
+    safe fn __main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> !;
 }
 
 /// Marks the main function of the binary and reserves space for the boot stack.
@@ -100,7 +100,7 @@ macro_rules! entry {
         static mut __BOOT_STACK: $crate::Stack<$boot_stack_pages> = $crate::Stack::new();
 
         // Export a symbol with a name matching the extern declaration above.
-        #[export_name = "main"]
+        #[export_name = "__main"]
         fn __main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
             // Ensure that the main function provided by the application has the correct type.
             $name(arg0, arg1, arg2, arg3)
