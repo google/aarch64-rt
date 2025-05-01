@@ -33,6 +33,15 @@ global_asm!(include_str!("el3_enable_mmu.S"));
 #[cfg(feature = "exceptions")]
 global_asm!(include_str!("exceptions.S"));
 
+unsafe extern "C" {
+    /// An assembly entry point for secondary cores.
+    ///
+    /// It will enable the MMU, disable trapping of floating point instructions, initialise the
+    /// stack pointer to `stack_end` and then jump to the function pointer at the bottom of the
+    /// stack with the u64 value second on the stack as a parameter.
+    pub unsafe fn secondary_entry(stack_end: *mut u64) -> !;
+}
+
 #[unsafe(no_mangle)]
 extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
     // SAFETY: We provide a valid vector table.
