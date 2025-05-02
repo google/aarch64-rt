@@ -11,19 +11,21 @@ categories = ["embedded", "no-std"]
 
 [dependencies]
 cfg-if = "1.0.0"
+smccc = { version = "0.2.1", optional = true }
 
 [dev-dependencies]
 aarch64-paging = { version = "0.8.1", default-features = false }
 arm-pl011-uart = "0.3.1"
-smccc = "0.2.0"
+smccc = "0.2.1"
 
 [features]
-default = ["el1", "exceptions", "initial-pagetable"]
+default = ["el1", "exceptions", "initial-pagetable", "psci"]
 el1 = []
 el2 = []
 el3 = []
 exceptions = []
 initial-pagetable = []
+psci = ["dep:smccc"]
 
 [package.metadata.docs.rs]
 default-target = "aarch64-unknown-none"

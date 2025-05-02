@@ -9,6 +9,8 @@
 ### Improvements
 
 - Added secondary core entry point.
+- Added `start_core` function to wrap a `PSCI_CPU_ON` call to start a secondary core, with the
+  secondary core entry point. This is behind the new `psci` feature, which is enabled by default.
 
 ## 0.1.1
 
