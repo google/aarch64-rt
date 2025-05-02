@@ -174,7 +174,8 @@ impl StackPage {
 /// `stack` must point to a region of memory which is reserved for this core's stack. It must remain
 /// valid as long as the core is running, and there must not be any other access to it during that
 /// time. It must be mapped both for the current core to write to it (to pass initial parameters)
-/// and in the initial page table which the core being started will used.
+/// and in the initial page table which the core being started will used, with the same memory
+/// attributes for both.
 pub unsafe fn start_core<const N: usize>(
     mpidr: u64,
     stack: *mut Stack<N>,
