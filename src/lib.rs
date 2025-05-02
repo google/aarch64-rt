@@ -109,7 +109,7 @@ macro_rules! entry {
         static mut __BOOT_STACK: $crate::Stack<$boot_stack_pages> = $crate::Stack::new();
 
         // Export a symbol with a name matching the extern declaration above.
-        #[export_name = "__main"]
+        #[unsafe(export_name = "__main")]
         fn __main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
             // Ensure that the main function provided by the application has the correct type.
             $name(arg0, arg1, arg2, arg3)

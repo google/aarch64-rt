@@ -1,7 +1,7 @@
 [package]
 name = "aarch64-rt"
 version = "0.1.1"
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Startup code and exception vector for aarch64 Cortex-A processors."
 authors = ["Andrew Walbran <qwandor@google.com>"]
