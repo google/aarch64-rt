@@ -33,6 +33,15 @@ global_asm!(include_str!("el3_enable_mmu.S"));
 #[cfg(feature = "exceptions")]
 global_asm!(include_str!("exceptions.S"));
 
+unsafe extern "C" {
+    /// An assembly entry point for secondary cores.
+    ///
+    /// It will enable the MMU, disable trapping of floating point instructions, initialise the
+    /// stack pointer to `stack_end` and then jump to the function pointer at the bottom of the
+    /// stack with the u64 value second on the stack as a parameter.
+    pub unsafe fn secondary_entry(stack_end: *mut u64) -> !;
+}
+
 #[unsafe(no_mangle)]
 extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
     // SAFETY: We provide a valid vector table.
@@ -150,5 +159,51 @@ struct StackPage([u8; 4096]);
 impl StackPage {
     const fn new() -> Self {
         Self([0; 4096])
+    }
+}
+
+#[cfg(feature = "psci")]
+/// Issues a PSCI CPU_ON call to start the CPU core with the given MPIDR.
+///
+/// This starts the core with an assembly entry point which will enable the MMU, disable trapping of
+/// floating point instructions, initialise the stack pointer to the given value, and then jump to
+/// the given Rust entry point function, passing it the given argument value.
+///
+/// # Safety
+///
+/// `stack` must point to a region of memory which is reserved for this core's stack. It must remain
+/// valid as long as the core is running, and there must not be any other access to it during that
+/// time. It must be mapped both for the current core to write to it (to pass initial parameters)
+/// and in the initial page table which the core being started will used, with the same memory
+/// attributes for both.
+pub unsafe fn start_core<const N: usize>(
+    mpidr: u64,
+    stack: *mut Stack<N>,
+    rust_entry: extern "C" fn(arg: u64) -> !,
+    arg: u64,
+) -> Result<(), smccc::psci::Error> {
+    assert!(stack.is_aligned());
+    // The stack grows downwards on aarch64, so get a pointer to the end of the stack.
+    let stack_end = stack.wrapping_add(1);
+
+    // Write Rust entry point to the stack, so the assembly entry point can jump to it.
+    let params = stack_end as *mut u64;
+    // SAFETY: Our caller promised that the stack is valid and nothing else will access it.
+    unsafe {
+        *params.wrapping_sub(1) = rust_entry as _;
+        *params.wrapping_sub(2) = arg;
+    }
+    // Wait for the stores above to complete before starting the secondary CPU core.
+    dsb_st();
+
+    smccc::psci::cpu_on::<smccc::Hvc>(mpidr, secondary_entry as _, stack_end as _)
+}
+
+/// Data synchronisation barrier that waits for stores to complete, for the full system.
+#[cfg(feature = "psci")]
+fn dsb_st() {
+    // SAFETY: A synchronisation barrier is always safe.
+    unsafe {
+        asm!("dsb st", options(nostack));
     }
 }
