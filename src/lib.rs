@@ -42,8 +42,9 @@ unsafe extern "C" {
     pub unsafe fn secondary_entry(stack_end: *mut u64) -> !;
 }
 
-#[unsafe(no_mangle)]
-extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
+/// Sets the appropriate vbar to point to our `vector_table`, if the `exceptions` feature is
+/// enabled.
+fn set_exception_vector() {
     // SAFETY: We provide a valid vector table.
     #[cfg(all(feature = "el1", feature = "exceptions"))]
     unsafe {
@@ -74,6 +75,11 @@ extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
             out("x30") _,
         );
     }
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
+    set_exception_vector();
     __main(arg0, arg1, arg2, arg3)
 }
 
