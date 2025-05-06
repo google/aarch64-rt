@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Improvements
+
+- Set exception vector on secondary cores too.
+
 ## 0.1.2
 
 ### Bugfixes

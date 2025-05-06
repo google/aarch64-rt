@@ -61,8 +61,17 @@ secondary_entry:
     /* Set the stack pointer which was passed. */
     mov sp, x0
 
-    /* Load Rust entry point address and argument from the bottom of the stack. */
-    ldp x0, x1, [sp, #-16]
+    /*
+     * Load Rust entry point address and argument from the bottom of the stack into callee-saved
+     * registers.
+     */
+    ldp x19, x20, [sp, #-16]
+
+    /* Set the exception vector. */
+    bl set_exception_vector
+
+    /* Pass argument to Rust entry point. */
+    mov x0, x19
 
     /* Call into Rust code. */
-    br x1
+    br x20
