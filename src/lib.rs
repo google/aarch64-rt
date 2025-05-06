@@ -50,30 +50,30 @@ extern "C" fn set_exception_vector() {
     #[cfg(all(feature = "el1", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x30, vector_table",
-            "msr vbar_el1, x30",
+            "adr x9, vector_table",
+            "msr vbar_el1, x9",
             options(nomem, nostack),
-            out("x30") _,
+            out("x9") _,
         );
     }
     // SAFETY: We provide a valid vector table.
     #[cfg(all(feature = "el2", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x30, vector_table",
-            "msr vbar_el2, x30",
+            "adr x9, vector_table",
+            "msr vbar_el2, x9",
             options(nomem, nostack),
-            out("x30") _,
+            out("x9") _,
         );
     }
     // SAFETY: We provide a valid vector table.
     #[cfg(all(feature = "el3", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x30, vector_table",
-            "msr vbar_el3, x30",
+            "adr x9, vector_table",
+            "msr vbar_el3, x9",
             options(nomem, nostack),
-            out("x30") _,
+            out("x9") _,
         );
     }
 }
