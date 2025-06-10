@@ -5,6 +5,7 @@
 ### Breaking changes
 
 - `vector_table` renamed to `vector_table_el1`.
+- `start_core` now takes a type parameter to choose whether to use an HVC or SMC PSCI call.
 
 ### Bugfixes
 
