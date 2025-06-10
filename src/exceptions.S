@@ -10,10 +10,10 @@
  * instructions, so it can be used in exception handlers with 18 instructions
  * left.
  *
- * On return, x0 and x1 are initialised to elr_el2 and spsr_el2 respectively,
+ * On return, x0 and x1 are initialised to elr_elX and spsr_elX respectively,
  * which can be used as the first and second arguments of a subsequent call.
  */
-.macro save_volatile_to_stack
+.macro save_volatile_to_stack el:req
 	/* Reserve stack space and save registers x0-x18, x29 & x30. */
 	stp x0, x1, [sp, #-(8 * 24)]!
 	stp x2, x3, [sp, #8 * 2]
@@ -28,11 +28,11 @@
 	stp x29, x30, [sp, #8 * 20]
 
 	/*
-	 * Save elr_el1 & spsr_el1. This such that we can take nested exception
+	 * Save elr_elX & spsr_elX. This such that we can take nested exception
 	 * and still be able to unwind.
 	 */
-	mrs x0, elr_el1
-	mrs x1, spsr_el1
+	mrs x0, elr_\el
+	mrs x1, spsr_\el
 	stp x0, x1, [sp, #8 * 22]
 .endm
 
@@ -42,7 +42,7 @@
  * instructions left; if paired with save_volatile_to_stack, there are 4
  * instructions to spare.
  */
-.macro restore_volatile_from_stack
+.macro restore_volatile_from_stack el:req
 	/* Restore registers x2-x18, x29 & x30. */
 	ldp x2, x3, [sp, #8 * 2]
 	ldp x4, x5, [sp, #8 * 4]
@@ -55,10 +55,10 @@
 	ldr x18, [sp, #8 * 18]
 	ldp x29, x30, [sp, #8 * 20]
 
-	/* Restore registers elr_el1 & spsr_el1, using x0 & x1 as scratch. */
+	/* Restore registers elr_elX & spsr_elX, using x0 & x1 as scratch. */
 	ldp x0, x1, [sp, #8 * 22]
-	msr elr_el1, x0
-	msr spsr_el1, x1
+	msr elr_\el, x0
+	msr spsr_\el, x1
 
 	/* Restore x0 & x1, and release stack space. */
 	ldp x0, x1, [sp], #8 * 24
@@ -73,11 +73,11 @@
  * restore and return we need an additional 16 instructions, so we can implement
  * the whole handler within the allotted 32 instructions.
  */
-.macro current_exception_sp0 handler:req
+.macro current_exception_sp0 handler:req el:req
 	msr spsel, #1
-	save_volatile_to_stack
+	save_volatile_to_stack \el
 	bl \handler
-	restore_volatile_from_stack
+	restore_volatile_from_stack \el
 	msr spsel, #0
 	eret
 .endm
@@ -94,76 +94,84 @@
  * restoring and returning also takes 15 instructions, so we can fit the whole
  * handler in 30 instructions, under the limit of 32.
  */
-.macro current_exception_spx handler:req
-	save_volatile_to_stack
+.macro current_exception_spx handler:req el:req
+	save_volatile_to_stack \el
 	bl \handler
-	restore_volatile_from_stack
+	restore_volatile_from_stack \el
 	eret
 .endm
 
-.section .text.vector_table, "ax"
-.global vector_table
+
+.macro vector_table el:req
+.section .text.vector_table_\el, "ax"
+.global vector_table_\el
 .balign 0x800
-vector_table:
-sync_cur_sp0:
-	current_exception_sp0 sync_exception_current
+vector_table_\el:
+sync_cur_sp0_\el:
+	current_exception_sp0 sync_exception_current \el
 
 .balign 0x80
-irq_cur_sp0:
-	current_exception_sp0 irq_current
+irq_cur_sp0_\el:
+	current_exception_sp0 irq_current \el
 
 .balign 0x80
-fiq_cur_sp0:
-	current_exception_sp0 fiq_current
+fiq_cur_sp0_\el:
+	current_exception_sp0 fiq_current \el
 
 .balign 0x80
-serr_cur_sp0:
-	current_exception_sp0 serr_current
+serr_cur_sp0_\el:
+	current_exception_sp0 serr_current \el
 
 .balign 0x80
-sync_cur_spx:
-	current_exception_spx sync_exception_current
+sync_cur_spx_\el:
+	current_exception_spx sync_exception_current \el
 
 .balign 0x80
-irq_cur_spx:
-	current_exception_spx irq_current
+irq_cur_spx_\el:
+	current_exception_spx irq_current \el
 
 .balign 0x80
-fiq_cur_spx:
-	current_exception_spx fiq_current
+fiq_cur_spx_\el:
+	current_exception_spx fiq_current \el
 
 .balign 0x80
-serr_cur_spx:
-	current_exception_spx serr_current
+serr_cur_spx_\el:
+	current_exception_spx serr_current \el
 
 .balign 0x80
-sync_lower_64:
-	current_exception_spx sync_lower
+sync_lower_64_\el:
+	current_exception_spx sync_lower \el
 
 .balign 0x80
-irq_lower_64:
-	current_exception_spx irq_lower
+irq_lower_64_\el:
+	current_exception_spx irq_lower \el
 
 .balign 0x80
-fiq_lower_64:
-	current_exception_spx fiq_lower
+fiq_lower_64_\el:
+	current_exception_spx fiq_lower \el
 
 .balign 0x80
-serr_lower_64:
-	current_exception_spx serr_lower
+serr_lower_64_\el:
+	current_exception_spx serr_lower \el
 
 .balign 0x80
-sync_lower_32:
-	current_exception_spx sync_lower
+sync_lower_32_\el:
+	current_exception_spx sync_lower \el
 
 .balign 0x80
-irq_lower_32:
-	current_exception_spx irq_lower
+irq_lower_32_\el:
+	current_exception_spx irq_lower \el
 
 .balign 0x80
-fiq_lower_32:
-	current_exception_spx fiq_lower
+fiq_lower_32_\el:
+	current_exception_spx fiq_lower \el
 
 .balign 0x80
-serr_lower_32:
-	current_exception_spx serr_lower
+serr_lower_32_\el:
+	current_exception_spx serr_lower \el
+
+.endm
+
+vector_table el1
+vector_table el2
+vector_table el3

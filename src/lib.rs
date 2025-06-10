@@ -50,7 +50,7 @@ extern "C" fn set_exception_vector() {
     #[cfg(all(feature = "el1", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x9, vector_table",
+            "adr x9, vector_table_el1",
             "msr vbar_el1, x9",
             options(nomem, nostack),
             out("x9") _,
@@ -60,7 +60,7 @@ extern "C" fn set_exception_vector() {
     #[cfg(all(feature = "el2", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x9, vector_table",
+            "adr x9, vector_table_el2",
             "msr vbar_el2, x9",
             options(nomem, nostack),
             out("x9") _,
@@ -70,7 +70,7 @@ extern "C" fn set_exception_vector() {
     #[cfg(all(feature = "el3", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x9, vector_table",
+            "adr x9, vector_table_el3",
             "msr vbar_el3, x9",
             options(nomem, nostack),
             out("x9") _,

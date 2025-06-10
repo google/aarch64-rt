@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- `vector_table` renamed to `vector_table_el1`.
+
+### Bugfixes
+
+- Save and restore correct ELR and SPSR registers when handling exceptions in EL2 or EL3. New vector
+  tables `vector_table_el2` and `vector_table_el3` are provided for these.
+
 ## 0.1.3
 
 ### Improvements
