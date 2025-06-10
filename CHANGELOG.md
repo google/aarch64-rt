@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- `vector_table` renamed to `vector_table_el1`.
+- `start_core` now takes a type parameter to choose whether to use an HVC or SMC PSCI call.
+
+### Bugfixes
+
+- Save and restore correct ELR and SPSR registers when handling exceptions in EL2 or EL3. New vector
+  tables `vector_table_el2` and `vector_table_el3` are provided for these.
+
 ## 0.1.3
 
 ### Improvements

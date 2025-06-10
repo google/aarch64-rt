@@ -50,7 +50,7 @@ extern "C" fn set_exception_vector() {
     #[cfg(all(feature = "el1", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x9, vector_table",
+            "adr x9, vector_table_el1",
             "msr vbar_el1, x9",
             options(nomem, nostack),
             out("x9") _,
@@ -60,7 +60,7 @@ extern "C" fn set_exception_vector() {
     #[cfg(all(feature = "el2", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x9, vector_table",
+            "adr x9, vector_table_el2",
             "msr vbar_el2, x9",
             options(nomem, nostack),
             out("x9") _,
@@ -70,7 +70,7 @@ extern "C" fn set_exception_vector() {
     #[cfg(all(feature = "el3", feature = "exceptions"))]
     unsafe {
         asm!(
-            "adr x9, vector_table",
+            "adr x9, vector_table_el3",
             "msr vbar_el3, x9",
             options(nomem, nostack),
             out("x9") _,
@@ -183,7 +183,7 @@ impl StackPage {
 /// time. It must be mapped both for the current core to write to it (to pass initial parameters)
 /// and in the initial page table which the core being started will used, with the same memory
 /// attributes for both.
-pub unsafe fn start_core<const N: usize>(
+pub unsafe fn start_core<C: smccc::Call, const N: usize>(
     mpidr: u64,
     stack: *mut Stack<N>,
     rust_entry: extern "C" fn(arg: u64) -> !,
@@ -203,7 +203,7 @@ pub unsafe fn start_core<const N: usize>(
     // Wait for the stores above to complete before starting the secondary CPU core.
     dsb_st();
 
-    smccc::psci::cpu_on::<smccc::Hvc>(mpidr, secondary_entry as _, stack_end as _)
+    smccc::psci::cpu_on::<C>(mpidr, secondary_entry as _, stack_end as _)
 }
 
 /// Data synchronisation barrier that waits for stores to complete, for the full system.
