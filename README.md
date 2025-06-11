@@ -46,7 +46,7 @@ fn main() {
 
 ## Features
 
-`el1`, `exceptions` and `initial-pagetable` are enabled by default.
+`el1`, `exceptions`, `initial-pagetable` and `psci` are enabled by default.
 
 ### `el1`
 
@@ -114,6 +114,11 @@ This is especially important if running at EL1 in a VM, as accessing memory with
 while the hypervisor or host has cacheable aliases to the same memory can lead to cache coherency
 issues. Even if the host doesn't explicitly access the memory, speculative accesses can lead to
 cache fills.
+
+### `psci`
+
+Adds the `start_core` function to start another CPU core via a PSCI `CPU_ON` call. This adds a
+dependency on the `smccc` crate.
 
 ## License
 
