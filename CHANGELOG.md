@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bugfixes
+
+- Fixed build failure when `psci` feature was enabled without `exceptions` feature.
+
 ## 0.2.0
 
 ### Breaking changes

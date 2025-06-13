@@ -15,20 +15,19 @@
 ))]
 compile_error!("Only one `el` feature may be enabled at once.");
 
-#[cfg(feature = "exceptions")]
+#[cfg(feature = "initial-pagetable")]
+mod pagetable;
+
+#[cfg(any(feature = "exceptions", feature = "psci"))]
 use core::arch::asm;
 use core::arch::global_asm;
+#[cfg(feature = "initial-pagetable")]
+pub use pagetable::InitialPagetable;
 
 global_asm!(include_str!("entry.S"));
 
 #[cfg(not(feature = "initial-pagetable"))]
 global_asm!(include_str!("dummy_enable_mmu.S"),);
-#[cfg(all(feature = "el1", feature = "initial-pagetable"))]
-global_asm!(include_str!("el1_enable_mmu.S"),);
-#[cfg(all(feature = "el2", feature = "initial-pagetable"))]
-global_asm!(include_str!("el2_enable_mmu.S"));
-#[cfg(all(feature = "el3", feature = "initial-pagetable"))]
-global_asm!(include_str!("el3_enable_mmu.S"));
 
 #[cfg(feature = "exceptions")]
 global_asm!(include_str!("exceptions.S"));
@@ -123,23 +122,6 @@ macro_rules! entry {
         }
     };
 }
-
-/// Provides an initial pagetable which can be used before any Rust code is run.
-///
-/// The `initial-pagetable` feature must be enabled for this to be used.
-#[cfg(feature = "initial-pagetable")]
-#[macro_export]
-macro_rules! initial_pagetable {
-    ($value:expr) => {
-        #[unsafe(export_name = "initial_pagetable")]
-        #[unsafe(link_section = ".rodata.initial_pagetable")]
-        static INITIAL_PAGETABLE: $crate::InitialPagetable = $value;
-    };
-}
-
-/// A hardcoded pagetable.
-#[repr(C, align(4096))]
-pub struct InitialPagetable(pub [usize; 512]);
 
 /// A stack for some CPU core.
 ///
