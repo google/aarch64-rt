@@ -15,7 +15,7 @@
 ))]
 compile_error!("Only one `el` feature may be enabled at once.");
 
-#[cfg(feature = "exceptions")]
+#[cfg(any(feature = "exceptions", feature = "psci"))]
 use core::arch::asm;
 use core::arch::global_asm;
 
