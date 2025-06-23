@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Improvements
+
+- Added optional parameters to `initial_pagetable!` to allow initial MAIR, TCR and SCTLR values to
+  be specified. The default values are exposed as constants.
+
 ## 0.2.1
 
 ### Bugfixes
