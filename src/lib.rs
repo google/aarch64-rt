@@ -22,7 +22,7 @@ mod pagetable;
 use core::arch::asm;
 use core::arch::global_asm;
 #[cfg(feature = "initial-pagetable")]
-pub use pagetable::InitialPagetable;
+pub use pagetable::{DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable};
 
 global_asm!(include_str!("entry.S"));
 
