@@ -72,6 +72,9 @@ macro_rules! initial_pagetable {
 
         $crate::__enable_mmu!($mair, $tcr, $sctlr);
     };
+    ($value:expr, $mair:expr) => {
+        initial_pagetable!($value, $mair, $crate::DEFAULT_TCR, $crate::DEFAULT_SCTLR);
+    };
     ($value:expr) => {
         initial_pagetable!(
             $value,
