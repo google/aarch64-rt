@@ -10,12 +10,12 @@ keywords = ["arm", "aarch64", "cortex-a"]
 categories = ["embedded", "no-std"]
 
 [dependencies]
-smccc = { version = "0.2.1", optional = true }
+smccc = { version = "0.2.2", optional = true }
 
 [dev-dependencies]
 aarch64-paging = { version = "0.9.1", default-features = false }
 arm-pl011-uart = "0.3.1"
-smccc = "0.2.1"
+smccc = "0.2.2"
 
 [features]
 default = ["el1", "exceptions", "initial-pagetable", "psci"]

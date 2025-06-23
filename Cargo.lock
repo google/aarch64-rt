@@ -98,9 +98,9 @@ dependencies = [
 
 [[package]]
 name = "smccc"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87ed898c59fbfd740492e435cba30a08b74a68d1f1ebb5f1a4b17f6bc7782be8"
+checksum = "7c73e0ca8c566478040487791c9f488f86c5aec846ca1ab18484be8a1d8c55cd"
 dependencies = [
  "thiserror",
 ]
