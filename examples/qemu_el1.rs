@@ -7,7 +7,10 @@
 #![no_std]
 #![no_main]
 
-use aarch64_paging::paging::Attributes;
+use aarch64_paging::{
+    mair::{Mair, MairAttribute, NormalMemory},
+    paging::Attributes,
+};
 use aarch64_rt::{InitialPagetable, entry, initial_pagetable};
 use arm_pl011_uart::{PL011Registers, Uart, UniqueMmioPointer};
 use core::{fmt::Write, panic::PanicInfo, ptr::NonNull};
@@ -32,16 +35,33 @@ const MEMORY_ATTRIBUTES: Attributes = Attributes::VALID
     .union(Attributes::ACCESSED)
     .union(Attributes::NON_GLOBAL);
 
-initial_pagetable!({
-    let mut idmap = [0; 512];
-    // 1 GiB of device memory.
-    idmap[0] = DEVICE_ATTRIBUTES.bits();
-    // 1 GiB of normal memory.
-    idmap[1] = MEMORY_ATTRIBUTES.bits() | 0x40000000;
-    // Another 1 GiB of device memory starting at 256 GiB.
-    idmap[256] = DEVICE_ATTRIBUTES.bits() | 0x4000000000;
-    InitialPagetable(idmap)
-});
+/// Indirect memory attributes to use.
+///
+/// These are used for `ATTRIBUTE_INDEX_0` and `ATTRIBUTE_INDEX_1` in `DEVICE_ATTRIBUTES` and
+/// `MEMORY_ATTRIBUTES` respectively.
+const MAIR: Mair = Mair::EMPTY
+    .with_attribute(0, MairAttribute::DEVICE_NGNRE)
+    .with_attribute(
+        1,
+        MairAttribute::normal(
+            NormalMemory::WriteBackNonTransientReadWriteAllocate,
+            NormalMemory::WriteBackNonTransientReadWriteAllocate,
+        ),
+    );
+
+initial_pagetable!(
+    {
+        let mut idmap = [0; 512];
+        // 1 GiB of device memory.
+        idmap[0] = DEVICE_ATTRIBUTES.bits();
+        // 1 GiB of normal memory.
+        idmap[1] = MEMORY_ATTRIBUTES.bits() | 0x40000000;
+        // Another 1 GiB of device memory starting at 256 GiB.
+        idmap[256] = DEVICE_ATTRIBUTES.bits() | 0x4000000000;
+        InitialPagetable(idmap)
+    },
+    MAIR.0
+);
 
 entry!(main);
 fn main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
