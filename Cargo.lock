@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "aarch64-paging"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b8f725e9256b2fac2d25e013e22a6a391b8c07e23c4c5eac6e037a78a28801"
+checksum = "1f02b5bfa3a481fdade5948a994ce93aa6c76f67fc19f3a9b270565cf7dfc657"
 dependencies = [
  "bitflags",
  "thiserror",
@@ -37,9 +37,9 @@ dependencies = [
 
 [[package]]
 name = "bitflags"
-version = "2.8.0"
+version = "2.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
+checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
 
 [[package]]
 name = "embedded-hal"

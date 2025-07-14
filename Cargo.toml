@@ -13,7 +13,7 @@ categories = ["embedded", "no-std"]
 smccc = { version = "0.2.2", optional = true }
 
 [dev-dependencies]
-aarch64-paging = { version = "0.9.1", default-features = false }
+aarch64-paging = { version = "0.10.0", default-features = false }
 arm-pl011-uart = "0.3.1"
 smccc = "0.2.2"
 
