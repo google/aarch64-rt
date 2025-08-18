@@ -14,7 +14,7 @@ smccc = { version = "0.2.2", optional = true }
 
 [dev-dependencies]
 aarch64-paging = { version = "0.10.0", default-features = false }
-arm-pl011-uart = "0.3.1"
+arm-pl011-uart = "0.3.2"
 smccc = "0.2.2"
 
 [features]
