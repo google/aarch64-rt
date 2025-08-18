@@ -27,7 +27,12 @@ pub use entry::secondary_entry;
 pub use pagetable::{DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable};
 
 #[cfg(not(feature = "initial-pagetable"))]
-global_asm!(include_str!("dummy_enable_mmu.S"),);
+#[unsafe(naked)]
+#[unsafe(link_section = ".init")]
+#[unsafe(export_name = "enable_mmu")]
+extern "C" fn enable_mmu() {
+    core::arch::naked_asm!("ret")
+}
 
 #[cfg(feature = "exceptions")]
 global_asm!(include_str!("exceptions.S"));
