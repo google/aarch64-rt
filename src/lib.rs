@@ -21,7 +21,10 @@ mod pagetable;
 
 #[cfg(any(feature = "exceptions", feature = "psci"))]
 use core::arch::asm;
+#[cfg(feature = "exceptions")]
 use core::arch::global_asm;
+#[cfg(not(feature = "initial-pagetable"))]
+use core::arch::naked_asm;
 pub use entry::secondary_entry;
 #[cfg(feature = "initial-pagetable")]
 pub use pagetable::{DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable};
@@ -31,7 +34,7 @@ pub use pagetable::{DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable};
 #[unsafe(link_section = ".init")]
 #[unsafe(export_name = "enable_mmu")]
 extern "C" fn enable_mmu() {
-    core::arch::naked_asm!("ret")
+    naked_asm!("ret")
 }
 
 #[cfg(feature = "exceptions")]
@@ -175,13 +178,17 @@ pub unsafe fn start_core<C: smccc::Call, const N: usize>(
     let params = stack_end as *mut u64;
     // SAFETY: Our caller promised that the stack is valid and nothing else will access it.
     unsafe {
-        *params.wrapping_sub(1) = rust_entry as _;
+        *params.wrapping_sub(1) = rust_entry as usize as _;
         *params.wrapping_sub(2) = arg;
     }
     // Wait for the stores above to complete before starting the secondary CPU core.
     dsb_st();
 
-    smccc::psci::cpu_on::<C>(mpidr, secondary_entry as _, stack_end as _)
+    smccc::psci::cpu_on::<C>(
+        mpidr,
+        secondary_entry as usize as _,
+        stack_end as usize as _,
+    )
 }
 
 /// Data synchronisation barrier that waits for stores to complete, for the full system.
