@@ -6,19 +6,83 @@
 
 use core::arch::naked_asm;
 
-/// This is a generic entry point for an image. It carries out the operations required to prepare the
-/// loaded image to be run. Specifically, it zeroes the bss section using registers x25 and above,
-/// prepares the stack, enables floating point, and sets up the exception vector. It preserves x0-x3
-/// for the Rust entry point, as these may contain boot parameters.
+use crate::rust_entry;
+
+/// This is a generic entry point for an image that calls [`entry_early_prepare`].
 ///
 /// # Safety
 ///
 /// This function is marked unsafe because it should never be called by anyone. The linker is
 /// responsible for setting it as the entry function.
+#[cfg(not(feature = "relocate"))]
 #[unsafe(naked)]
 #[unsafe(link_section = ".init.entry")]
 #[unsafe(export_name = "entry")]
 unsafe extern "C" fn entry() -> ! {
+    naked_asm!(
+        "b {entry_early_prepare}",
+        entry_early_prepare = sym entry_early_prepare
+    )
+}
+
+/// This is a generic entry point for an image prefixed with an [AArch64 Linux kernel boot
+/// header](https://docs.kernel.org/arch/arm64/booting.html) that calls [`entry_early_prepare`].
+///
+/// # Safety
+///
+/// This function is marked unsafe because it should never be called by anyone. The linker is
+/// responsible for setting it as the entry function.
+#[cfg(feature = "relocate")]
+#[unsafe(naked)]
+#[unsafe(link_section = ".init.entry")]
+#[unsafe(export_name = "entry")]
+unsafe extern "C" fn entry() -> ! {
+    const HEADER_FLAG_ENDIANNESS: u64 = cfg!(target_endian = "big") as u64;
+    // 0 - Unspecified, 1 - 4K, 2 - 16K, 3 - 64K
+    const HEADER_FLAG_PAGE_SIZE: u64 = 1;
+    const HEADER_FLAG_PHYSICAL_PLACEMENT: u64 = 1;
+    const HEADER_FLAGS: u64 = HEADER_FLAG_ENDIANNESS
+        | (HEADER_FLAG_PAGE_SIZE << 1)
+        | (HEADER_FLAG_PHYSICAL_PLACEMENT << 3);
+
+    naked_asm!(
+    // code0
+    "b {entry_early_prepare}",
+    // code1
+    "nop",
+
+    // text_offset
+    ".quad 0x0",
+    // image_size
+    ".quad bin_end - entry",
+    // flags
+    ".quad {HEADER_FLAGS}",
+    // res2
+    ".quad 0",
+    // res3
+    ".quad 0",
+    // res4
+    ".quad 0",
+
+    // "ARM\x64" magic number
+    ".long 0x644d5241",
+    // res5
+    ".long 0",
+    ".align 3",
+    entry_early_prepare = sym entry_early_prepare,
+    HEADER_FLAGS = const HEADER_FLAGS.to_le(),
+    )
+}
+
+/// Early entry point preparations.
+///
+/// It carries out the operations required to prepare the loaded image to be run. Specifically, it
+/// zeroes the bss section using registers x25 and above, prepares the stack, enables floating
+/// point, and sets up the exception vector. It preserves x0-x3 for the Rust entry point, as these
+/// may contain boot parameters.
+#[unsafe(naked)]
+#[unsafe(link_section = ".init.entry")]
+unsafe extern "C" fn entry_early_prepare() -> ! {
     naked_asm!(
         ".macro adr_l, reg:req, sym:req",
         r"adrp \reg, \sym",
@@ -42,9 +106,39 @@ unsafe extern "C" fn entry() -> ! {
         // Prepare the stack.
         "adr_l x30, boot_stack_end",
         "mov sp, x30",
+        // Perform final Rust entrypoint setup
+        "b {entry_prepare_image}",
+        entry_prepare_image = sym entry_prepare_image
+    )
+}
+
+#[cfg(not(feature = "relocate"))]
+#[unsafe(naked)]
+#[unsafe(link_section = ".init.entry")]
+unsafe extern "C" fn entry_prepare_image() -> ! {
+    naked_asm!(
         // Call into Rust code.
         "b {rust_entry}",
-        rust_entry = sym crate::rust_entry,
+        rust_entry = sym rust_entry
+    )
+}
+
+#[cfg(feature = "relocate")]
+#[unsafe(naked)]
+#[unsafe(link_section = ".init.entry")]
+unsafe extern "C" fn entry_prepare_image() -> ! {
+    naked_asm!(
+        // Preserve x0
+        "mov x24, x0",
+        // Where the image was loaded
+        "adr_l x0, text_begin",
+        "bl {relocate_image}",
+        "mov x0, x24",
+        // Call into Rust code.
+        "adr_l x7, {rust_entry}",
+        "br x7",
+        relocate_image = sym crate::relocate::relocate_image,
+        rust_entry = sym rust_entry,
     )
 }
 

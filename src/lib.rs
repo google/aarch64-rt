@@ -18,6 +18,8 @@ compile_error!("Only one `el` feature may be enabled at once.");
 mod entry;
 #[cfg(feature = "initial-pagetable")]
 mod pagetable;
+#[cfg(feature = "relocate")]
+mod relocate;
 
 #[cfg(any(feature = "exceptions", feature = "psci"))]
 use core::arch::asm;
