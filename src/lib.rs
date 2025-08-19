@@ -178,13 +178,17 @@ pub unsafe fn start_core<C: smccc::Call, const N: usize>(
     let params = stack_end as *mut u64;
     // SAFETY: Our caller promised that the stack is valid and nothing else will access it.
     unsafe {
-        *params.wrapping_sub(1) = rust_entry as _;
+        *params.wrapping_sub(1) = rust_entry as usize as _;
         *params.wrapping_sub(2) = arg;
     }
     // Wait for the stores above to complete before starting the secondary CPU core.
     dsb_st();
 
-    smccc::psci::cpu_on::<C>(mpidr, secondary_entry as _, stack_end as _)
+    smccc::psci::cpu_on::<C>(
+        mpidr,
+        secondary_entry as usize as _,
+        stack_end as usize as _,
+    )
 }
 
 /// Data synchronisation barrier that waits for stores to complete, for the full system.
