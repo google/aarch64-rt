@@ -21,7 +21,10 @@ mod pagetable;
 
 #[cfg(any(feature = "exceptions", feature = "psci"))]
 use core::arch::asm;
+#[cfg(feature = "exceptions")]
 use core::arch::global_asm;
+#[cfg(not(feature = "initial-pagetable"))]
+use core::arch::naked_asm;
 pub use entry::secondary_entry;
 #[cfg(feature = "initial-pagetable")]
 pub use pagetable::{DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable};
@@ -31,7 +34,7 @@ pub use pagetable::{DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable};
 #[unsafe(link_section = ".init")]
 #[unsafe(export_name = "enable_mmu")]
 extern "C" fn enable_mmu() {
-    core::arch::naked_asm!("ret")
+    naked_asm!("ret")
 }
 
 #[cfg(feature = "exceptions")]
