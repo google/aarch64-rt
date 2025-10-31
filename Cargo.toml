@@ -19,7 +19,7 @@ arm-pl011-uart = "0.4.0"
 smccc = "0.2.2"
 
 [features]
-default = ["el1", "exceptions", "initial-pagetable", "psci"]
+default = ["exceptions", "initial-pagetable", "psci"]
 el1 = []
 el2 = []
 el3 = []

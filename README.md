@@ -46,7 +46,7 @@ fn main() {
 
 ## Features
 
-`el1`, `exceptions`, `initial-pagetable` and `psci` are enabled by default.
+`exceptions`, `initial-pagetable` and `psci` are enabled by default.
 
 ### `el1`
 

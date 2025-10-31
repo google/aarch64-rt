@@ -76,6 +76,38 @@ extern "C" fn set_exception_vector() {
             out("x9") _,
         );
     }
+    // SAFETY: We provide a valid vector table.
+    #[cfg(all(
+        feature = "exceptions",
+        not(any(feature = "el1", feature = "el2", feature = "el3"))
+    ))]
+    unsafe {
+        asm!(
+            "mrs x9, CurrentEL",
+            "ubfx x9, x9, #2, #2",
+
+            "cmp x9, #3",
+            "b.ne 1f",
+            "adr x9, vector_table_el3",
+            "msr vbar_el3, x9",
+            "b 3f",
+
+        "1:",
+            "cmp x9, #2",
+            "b.ne 2f",
+            "adr x9, vector_table_el2",
+            "msr vbar_el2, x9",
+            "b 3f",
+
+        "2:",
+            "adr x9, vector_table_el1",
+            "msr vbar_el1, x9",
+
+        "3:",
+            options(nomem, nostack),
+            out("x9") _,
+        );
+    }
 }
 
 extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {

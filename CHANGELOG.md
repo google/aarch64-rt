@@ -4,9 +4,10 @@
 
 ### Improvements
 
-- If the `initial-pagetable` feature is specified without any of the `elX` features, then the
-  exception level will be checked at runtime and the appropriate registers for the current EL will
-  be used.
+- If the `initial-pagetable` or `exceptions` features are specified without any of the `elX`
+  features, then the exception level will be checked at runtime and the appropriate registers for
+  the current EL will be used. The `el1` feature is no longer enabled by default, as this runtime
+  detection should work instead.
 
 ### Bugfixes
 
