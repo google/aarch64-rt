@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Improvements
+
+- If the `initial-pagetable` feature is specified without any of the `elX` features, then the
+  exception level will be checked at runtime and the appropriate registers for the current EL will
+  be used.
+
 ### Bugfixes
 
 - Stopped exposing unmangled symbols for `set_exception_vector` and `rust_entry`.

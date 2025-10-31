@@ -294,6 +294,47 @@ macro_rules! __enable_mmu {
     };
 }
 
+/// Macro used internally by [`initial_pagetable!`]. Shouldn't be used directly.
+#[cfg(not(any(feature = "el1", feature = "el2", feature = "el3")))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __enable_mmu {
+    ($mair:expr, $tcr:expr, $sctlr:expr) => {
+        core::arch::global_asm!(
+            r".macro mov_i, reg:req, imm:req",
+                r"movz \reg, :abs_g3:\imm",
+                r"movk \reg, :abs_g2_nc:\imm",
+                r"movk \reg, :abs_g1_nc:\imm",
+                r"movk \reg, :abs_g0_nc:\imm",
+            r".endm",
+
+            ".section .init, \"ax\"",
+            ".global enable_mmu",
+            "enable_mmu:",
+                "mov_i x8, {MAIR_VALUE}",
+                "mov_i x9, {TCR_VALUE}",
+                "mov_i x10, {SCTLR_VALUE}",
+
+                "mrs x11, CurrentEL",
+                "ubfx x11, x11, #2, #2",
+
+                "cmp x11, #3",
+                "b.eq {enable_mmu_el3}",
+                "cmp x11, #2",
+                "b.eq {enable_mmu_el2}",
+                "b {enable_mmu_el1}",
+
+            ".purgem mov_i",
+            MAIR_VALUE = const $mair,
+            TCR_VALUE = const $tcr,
+            SCTLR_VALUE = const $sctlr,
+            enable_mmu_el1 = sym $crate::enable_mmu_el1,
+            enable_mmu_el2 = sym $crate::enable_mmu_el2,
+            enable_mmu_el3 = sym $crate::enable_mmu_el3,
+        );
+    };
+}
+
 /// A hardcoded pagetable.
 #[repr(C, align(4096))]
 pub struct InitialPagetable(pub [usize; 512]);
