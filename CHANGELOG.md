@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bugfixes
+
+- Stopped exposing unmangled symbols for `set_exception_vector` and `rust_entry`.
+
 ## 0.2.2
 
 ### Improvements

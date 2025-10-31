@@ -42,7 +42,6 @@ global_asm!(include_str!("exceptions.S"));
 
 /// Sets the appropriate vbar to point to our `vector_table`, if the `exceptions` feature is
 /// enabled.
-#[unsafe(no_mangle)]
 extern "C" fn set_exception_vector() {
     // SAFETY: We provide a valid vector table.
     #[cfg(all(feature = "el1", feature = "exceptions"))]
@@ -76,7 +75,6 @@ extern "C" fn set_exception_vector() {
     }
 }
 
-#[unsafe(no_mangle)]
 extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
     set_exception_vector();
     __main(arg0, arg1, arg2, arg3)
