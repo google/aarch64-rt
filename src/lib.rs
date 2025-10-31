@@ -28,8 +28,8 @@ use core::arch::naked_asm;
 pub use entry::secondary_entry;
 #[cfg(feature = "initial-pagetable")]
 pub use pagetable::{
-    DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable, enable_mmu_el1, enable_mmu_el2,
-    enable_mmu_el3,
+    __enable_mmu_el1, __enable_mmu_el2, __enable_mmu_el3, DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR,
+    InitialPagetable,
 };
 
 #[cfg(not(feature = "initial-pagetable"))]

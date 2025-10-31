@@ -97,8 +97,9 @@ macro_rules! initial_pagetable {
 /// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
 ///
 /// Clobbers x8-x9.
+#[doc(hidden)]
 #[unsafe(naked)]
-pub unsafe extern "C" fn enable_mmu_el1() {
+pub unsafe extern "C" fn __enable_mmu_el1() {
     naked_asm!(
         // Load and apply the memory management configuration, ready to enable MMU and
         // caches.
@@ -134,8 +135,9 @@ pub unsafe extern "C" fn enable_mmu_el1() {
 /// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
 ///
 /// Clobbers x8-x9.
+#[doc(hidden)]
 #[unsafe(naked)]
-pub unsafe extern "C" fn enable_mmu_el2() {
+pub unsafe extern "C" fn __enable_mmu_el2() {
     naked_asm!(
         // Load and apply the memory management configuration, ready to enable MMU and
         // caches.
@@ -171,8 +173,9 @@ pub unsafe extern "C" fn enable_mmu_el2() {
 /// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
 ///
 /// Clobbers x8-x9.
+#[doc(hidden)]
 #[unsafe(naked)]
-pub unsafe extern "C" fn enable_mmu_el3() {
+pub unsafe extern "C" fn __enable_mmu_el3() {
     naked_asm!(
         // Load and apply the memory management configuration, ready to enable MMU and
         // caches.
@@ -225,7 +228,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
-            enable_mmu_el1 = sym $crate::enable_mmu_el1,
+            enable_mmu_el1 = sym $crate::__enable_mmu_el1,
         );
     };
 }
@@ -257,7 +260,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
-            enable_mmu_el2 = sym $crate::enable_mmu_el2,
+            enable_mmu_el2 = sym $crate::__enable_mmu_el2,
         );
     };
 }
@@ -289,7 +292,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
-            enable_mmu_el3 = sym $crate::enable_mmu_el3,
+            enable_mmu_el3 = sym $crate::__enable_mmu_el3,
         );
     };
 }
@@ -328,9 +331,9 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
-            enable_mmu_el1 = sym $crate::enable_mmu_el1,
-            enable_mmu_el2 = sym $crate::enable_mmu_el2,
-            enable_mmu_el3 = sym $crate::enable_mmu_el3,
+            enable_mmu_el1 = sym $crate::__enable_mmu_el1,
+            enable_mmu_el2 = sym $crate::__enable_mmu_el2,
+            enable_mmu_el3 = sym $crate::__enable_mmu_el3,
         );
     };
 }
