@@ -4,6 +4,8 @@
 
 //! Code to set up an initial pagetable.
 
+use core::arch::naked_asm;
+
 const MAIR_DEV_NGNRE: u64 = 0x04;
 const MAIR_MEM_WBWA: u64 = 0xff;
 /// The default value used for MAIR_ELx.
@@ -85,6 +87,117 @@ macro_rules! initial_pagetable {
     };
 }
 
+/// Enables the MMU and caches, assuming that we are running at EL1.
+///
+/// # Safety
+///
+/// This function doesn't follow the standard aarch64 calling convention. It must only be called
+/// from assembly code, early in the boot process.
+///
+/// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
+///
+/// Clobbers x8-x9.
+#[unsafe(naked)]
+pub unsafe extern "C" fn enable_mmu_el1() {
+    naked_asm!(
+        // Load and apply the memory management configuration, ready to enable MMU and
+        // caches.
+        "msr mair_el1, x8",
+        "adrp x8, initial_pagetable",
+        "msr ttbr0_el1, x8",
+        // Copy the supported PA range into TCR_EL1.IPS.
+        "mrs x8, id_aa64mmfr0_el1",
+        "bfi x9, x8, #32, #4",
+        "msr tcr_el1, x9",
+        // Ensure everything before this point has completed, then invalidate any
+        // potentially stale local TLB entries before they start being used.
+        "isb",
+        "tlbi vmalle1",
+        "ic iallu",
+        "dsb nsh",
+        "isb",
+        // Configure SCTLR_EL1 to enable MMU and cache and don't proceed until this has
+        // completed.
+        "msr sctlr_el1, x10",
+        "isb",
+        "ret"
+    );
+}
+
+/// Enables the MMU and caches, assuming that we are running at EL2.
+///
+/// # Safety
+///
+/// This function doesn't follow the standard aarch64 calling convention. It must only be called
+/// from assembly code, early in the boot process.
+///
+/// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
+///
+/// Clobbers x8-x9.
+#[unsafe(naked)]
+pub unsafe extern "C" fn enable_mmu_el2() {
+    naked_asm!(
+        // Load and apply the memory management configuration, ready to enable MMU and
+        // caches.
+        "msr mair_el2, x8",
+        "adrp x8, initial_pagetable",
+        "msr ttbr0_el2, x8",
+        // Copy the supported PA range into TCR_EL2.IPS.
+        "mrs x8, id_aa64mmfr0_el1",
+        "bfi x9, x8, #32, #4",
+        "msr tcr_el2, x9",
+        // Ensure everything before this point has completed, then invalidate any
+        // potentially stale local TLB entries before they start being used.
+        "isb",
+        "tlbi vmalle1",
+        "ic iallu",
+        "dsb nsh",
+        "isb",
+        // Configure SCTLR_EL2 to enable MMU and cache and don't proceed until this has
+        // completed.
+        "msr sctlr_el2, x10",
+        "isb",
+        "ret"
+    );
+}
+
+/// Enables the MMU and caches, assuming that we are running at EL3.
+///
+/// # Safety
+///
+/// This function doesn't follow the standard aarch64 calling convention. It must only be called
+/// from assembly code, early in the boot process.
+///
+/// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
+///
+/// Clobbers x8-x9.
+#[unsafe(naked)]
+pub unsafe extern "C" fn enable_mmu_el3() {
+    naked_asm!(
+        // Load and apply the memory management configuration, ready to enable MMU and
+        // caches.
+        "msr mair_el3, x8",
+        "adrp x8, initial_pagetable",
+        "msr ttbr0_el3, x8",
+        // Copy the supported PA range into TCR_EL3.IPS.
+        "mrs x8, id_aa64mmfr0_el1",
+        "bfi x9, x8, #32, #4",
+        "msr tcr_el3, x9",
+        // Ensure everything before this point has completed, then invalidate any
+        // potentially stale local TLB entries before they start being used.
+        "isb",
+        "tlbi vmalle1",
+        "ic iallu",
+        "dsb nsh",
+        "isb",
+        // Configure SCTLR_EL3 to enable MMU and cache and don't proceed until this has
+        // completed.
+        "msr sctlr_el3, x10",
+        "isb",
+        "ret"
+    );
+}
+
 /// Macro used internally by [`initial_pagetable!`]. Shouldn't be used directly.
 #[cfg(feature = "el1")]
 #[doc(hidden)]
@@ -102,42 +215,17 @@ macro_rules! __enable_mmu {
             ".section .init, \"ax\"",
             ".global enable_mmu",
             "enable_mmu:",
-                // Load and apply the memory management configuration, ready to enable MMU and
-                // caches.
-                "adrp x28, initial_pagetable",
-                "msr ttbr0_el1, x28",
+                "mov_i x8, {MAIR_VALUE}",
+                "mov_i x9, {TCR_VALUE}",
+                "mov_i x10, {SCTLR_VALUE}",
 
-                "mov_i x28, {MAIR_VALUE}",
-                "msr mair_el1, x28",
-
-                "mov_i x28, {TCR_VALUE}",
-                // Copy the supported PA range into TCR_EL1.IPS.
-                "mrs x29, id_aa64mmfr0_el1",
-                "bfi x28, x29, #32, #4",
-
-                "msr tcr_el1, x28",
-
-                "mov_i x28, {SCTLR_VALUE}",
-
-                // Ensure everything before this point has completed, then invalidate any
-                // potentially stale local TLB entries before they start being used.
-                "isb",
-                "tlbi vmalle1",
-                "ic iallu",
-                "dsb nsh",
-                "isb",
-
-                // Configure SCTLR_EL1 to enable MMU and cache and don't proceed until this has
-                // completed.
-                "msr sctlr_el1, x28",
-                "isb",
-
-                "ret",
+                "b {enable_mmu_el1}",
 
             ".purgem mov_i",
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            enable_mmu_el1 = sym $crate::enable_mmu_el1,
         );
     };
 }
@@ -159,42 +247,17 @@ macro_rules! __enable_mmu {
             ".section .init, \"ax\"",
             ".global enable_mmu",
             "enable_mmu:",
-                // Load and apply the memory management configuration, ready to enable MMU and
-                // caches.
-                "adrp x28, initial_pagetable",
-                "msr ttbr0_el2, x28",
+                "mov_i x8, {MAIR_VALUE}",
+                "mov_i x9, {TCR_VALUE}",
+                "mov_i x10, {SCTLR_VALUE}",
 
-                "mov_i x28, {MAIR_VALUE}",
-                "msr mair_el2, x28",
-
-                "mov_i x28, {TCR_VALUE}",
-                // Copy the supported PA range into TCR_EL2.IPS.
-                "mrs x29, id_aa64mmfr0_el1",
-                "bfi x28, x29, #32, #4",
-
-                "msr tcr_el2, x28",
-
-                "mov_i x28, {SCTLR_VALUE}",
-
-                // Ensure everything before this point has completed, then invalidate any
-                // potentially stale local TLB entries before they start being used.
-                "isb",
-                "tlbi vmalle1",
-                "ic iallu",
-                "dsb nsh",
-                "isb",
-
-                // Configure SCTLR_EL2 to enable MMU and cache and don't proceed until this has
-                // completed.
-                "msr sctlr_el2, x28",
-                "isb",
-
-                "ret",
+                "b {enable_mmu_el2}",
 
             ".purgem mov_i",
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            enable_mmu_el2 = sym $crate::enable_mmu_el2,
         );
     };
 }
@@ -216,42 +279,17 @@ macro_rules! __enable_mmu {
             ".section .init, \"ax\"",
             ".global enable_mmu",
             "enable_mmu:",
-                // Load and apply the memory management configuration, ready to enable MMU and
-                // caches.
-                "adrp x28, initial_pagetable",
-                "msr ttbr0_el3, x28",
+                "mov_i x8, {MAIR_VALUE}",
+                "mov_i x9, {TCR_VALUE}",
+                "mov_i x10, {SCTLR_VALUE}",
 
-                "mov_i x28, {MAIR_VALUE}",
-                "msr mair_el3, x28",
-
-                "mov_i x28, {TCR_VALUE}",
-                // Copy the supported PA range into TCR_EL3.IPS.
-                "mrs x29, id_aa64mmfr0_el1",
-                "bfi x28, x29, #32, #4",
-
-                "msr tcr_el3, x28",
-
-                "mov_i x28, {SCTLR_VALUE}",
-
-                // Ensure everything before this point has completed, then invalidate any
-                // potentially stale local TLB entries before they start being used.
-                "isb",
-                "tlbi vmalle1",
-                "ic iallu",
-                "dsb nsh",
-                "isb",
-
-                // Configure SCTLR_EL3 to enable MMU and cache and don't proceed until this has
-                // completed.
-                "msr sctlr_el3, x28",
-                "isb",
-
-                "ret",
+                "b {enable_mmu_el3}",
 
             ".purgem mov_i",
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            enable_mmu_el3 = sym $crate::enable_mmu_el3,
         );
     };
 }
