@@ -70,7 +70,7 @@ macro_rules! initial_pagetable {
     ($value:expr, $mair:expr, $tcr:expr, $sctlr:expr) => {
         static INITIAL_PAGETABLE: $crate::InitialPagetable = $value;
 
-        $crate::__enable_mmu!(INITIAL_PAGETABLE, $mair, $tcr, $sctlr);
+        $crate::enable_mmu!(INITIAL_PAGETABLE, $mair, $tcr, $sctlr);
     };
     ($value:expr, $mair:expr) => {
         initial_pagetable!($value, $mair, $crate::DEFAULT_TCR, $crate::DEFAULT_SCTLR);
@@ -199,11 +199,13 @@ pub unsafe extern "C" fn __enable_mmu_el3() {
     );
 }
 
-/// Macro used internally by [`initial_pagetable!`]. Shouldn't be used directly.
+/// Generates assembly code to enable the MMU and caches with the given initial pagetable before any
+/// Rust code is run.
+///
+/// This may be used indirectly via the [`initial_pagetable!`] macro.
 #[cfg(feature = "el1")]
-#[doc(hidden)]
 #[macro_export]
-macro_rules! __enable_mmu {
+macro_rules! enable_mmu {
     ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
@@ -233,11 +235,13 @@ macro_rules! __enable_mmu {
     };
 }
 
-/// Macro used internally by [`initial_pagetable!`]. Shouldn't be used directly.
+/// Generates assembly code to enable the MMU and caches with the given initial pagetable before any
+/// Rust code is run.
+///
+/// This may be used indirectly via the [`initial_pagetable!`] macro.
 #[cfg(feature = "el2")]
-#[doc(hidden)]
 #[macro_export]
-macro_rules! __enable_mmu {
+macro_rules! enable_mmu {
     ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
@@ -267,11 +271,13 @@ macro_rules! __enable_mmu {
     };
 }
 
-/// Macro used internally by [`initial_pagetable!`]. Shouldn't be used directly.
+/// Generates assembly code to enable the MMU and caches with the given initial pagetable before any
+/// Rust code is run.
+///
+/// This may be used indirectly via the [`initial_pagetable!`] macro.
 #[cfg(feature = "el3")]
-#[doc(hidden)]
 #[macro_export]
-macro_rules! __enable_mmu {
+macro_rules! enable_mmu {
     ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
@@ -301,11 +307,13 @@ macro_rules! __enable_mmu {
     };
 }
 
-/// Macro used internally by [`initial_pagetable!`]. Shouldn't be used directly.
+/// Generates assembly code to enable the MMU and caches with the given initial pagetable before any
+/// Rust code is run.
+///
+/// This may be used indirectly via the [`initial_pagetable!`] macro.
 #[cfg(not(any(feature = "el1", feature = "el2", feature = "el3")))]
-#[doc(hidden)]
 #[macro_export]
-macro_rules! __enable_mmu {
+macro_rules! enable_mmu {
     ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",

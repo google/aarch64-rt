@@ -8,6 +8,8 @@
   features, then the exception level will be checked at runtime and the appropriate registers for
   the current EL will be used. The `el1` feature is no longer enabled by default, as this runtime
   detection should work instead.
+- Exposed `enable_mmu!` macro to allow the MMU and caches to be enbled with an arbitrary initial
+  pagetable, rather than using `initial_pagetable!` to declare the static.
 
 ### Bugfixes
 
