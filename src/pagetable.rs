@@ -68,11 +68,9 @@ pub const DEFAULT_SCTLR: u64 = SCTLR_ELX_M
 #[macro_export]
 macro_rules! initial_pagetable {
     ($value:expr, $mair:expr, $tcr:expr, $sctlr:expr) => {
-        #[unsafe(export_name = "initial_pagetable")]
-        #[unsafe(link_section = ".rodata.initial_pagetable")]
         static INITIAL_PAGETABLE: $crate::InitialPagetable = $value;
 
-        $crate::__enable_mmu!($mair, $tcr, $sctlr);
+        $crate::__enable_mmu!(INITIAL_PAGETABLE, $mair, $tcr, $sctlr);
     };
     ($value:expr, $mair:expr) => {
         initial_pagetable!($value, $mair, $crate::DEFAULT_TCR, $crate::DEFAULT_SCTLR);
@@ -94,7 +92,8 @@ macro_rules! initial_pagetable {
 /// This function doesn't follow the standard aarch64 calling convention. It must only be called
 /// from assembly code, early in the boot process.
 ///
-/// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
+/// Expects the MAIR value in x8, the TCR value in x9, the SCTLR value in x10 and the root pagetable
+/// address in x11.
 ///
 /// Clobbers x8-x9.
 #[doc(hidden)]
@@ -104,8 +103,7 @@ pub unsafe extern "C" fn __enable_mmu_el1() {
         // Load and apply the memory management configuration, ready to enable MMU and
         // caches.
         "msr mair_el1, x8",
-        "adrp x8, initial_pagetable",
-        "msr ttbr0_el1, x8",
+        "msr ttbr0_el1, x11",
         // Copy the supported PA range into TCR_EL1.IPS.
         "mrs x8, id_aa64mmfr0_el1",
         "bfi x9, x8, #32, #4",
@@ -132,7 +130,8 @@ pub unsafe extern "C" fn __enable_mmu_el1() {
 /// This function doesn't follow the standard aarch64 calling convention. It must only be called
 /// from assembly code, early in the boot process.
 ///
-/// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
+/// Expects the MAIR value in x8, the TCR value in x9, the SCTLR value in x10 and the root pagetable
+/// address in x11.
 ///
 /// Clobbers x8-x9.
 #[doc(hidden)]
@@ -142,8 +141,7 @@ pub unsafe extern "C" fn __enable_mmu_el2() {
         // Load and apply the memory management configuration, ready to enable MMU and
         // caches.
         "msr mair_el2, x8",
-        "adrp x8, initial_pagetable",
-        "msr ttbr0_el2, x8",
+        "msr ttbr0_el2, x11",
         // Copy the supported PA range into TCR_EL2.IPS.
         "mrs x8, id_aa64mmfr0_el1",
         "bfi x9, x8, #32, #4",
@@ -170,7 +168,8 @@ pub unsafe extern "C" fn __enable_mmu_el2() {
 /// This function doesn't follow the standard aarch64 calling convention. It must only be called
 /// from assembly code, early in the boot process.
 ///
-/// Expects the MAIR value in x8, the TCR value in x9, and the SCTLR value in x10.
+/// Expects the MAIR value in x8, the TCR value in x9, the SCTLR value in x10 and the root pagetable
+/// address in x11.
 ///
 /// Clobbers x8-x9.
 #[doc(hidden)]
@@ -180,8 +179,7 @@ pub unsafe extern "C" fn __enable_mmu_el3() {
         // Load and apply the memory management configuration, ready to enable MMU and
         // caches.
         "msr mair_el3, x8",
-        "adrp x8, initial_pagetable",
-        "msr ttbr0_el3, x8",
+        "msr ttbr0_el3, x11",
         // Copy the supported PA range into TCR_EL3.IPS.
         "mrs x8, id_aa64mmfr0_el1",
         "bfi x9, x8, #32, #4",
@@ -206,7 +204,7 @@ pub unsafe extern "C" fn __enable_mmu_el3() {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __enable_mmu {
-    ($mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
                 r"movz \reg, :abs_g3:\imm",
@@ -221,6 +219,7 @@ macro_rules! __enable_mmu {
                 "mov_i x8, {MAIR_VALUE}",
                 "mov_i x9, {TCR_VALUE}",
                 "mov_i x10, {SCTLR_VALUE}",
+                "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el1}",
 
@@ -228,6 +227,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            pagetable = sym $pagetable,
             enable_mmu_el1 = sym $crate::__private::__enable_mmu_el1,
         );
     };
@@ -238,7 +238,7 @@ macro_rules! __enable_mmu {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __enable_mmu {
-    ($mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
                 r"movz \reg, :abs_g3:\imm",
@@ -253,6 +253,7 @@ macro_rules! __enable_mmu {
                 "mov_i x8, {MAIR_VALUE}",
                 "mov_i x9, {TCR_VALUE}",
                 "mov_i x10, {SCTLR_VALUE}",
+                "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el2}",
 
@@ -260,6 +261,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            pagetable = sym $pagetable,
             enable_mmu_el2 = sym $crate::__private::__enable_mmu_el2,
         );
     };
@@ -270,7 +272,7 @@ macro_rules! __enable_mmu {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __enable_mmu {
-    ($mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
                 r"movz \reg, :abs_g3:\imm",
@@ -285,6 +287,7 @@ macro_rules! __enable_mmu {
                 "mov_i x8, {MAIR_VALUE}",
                 "mov_i x9, {TCR_VALUE}",
                 "mov_i x10, {SCTLR_VALUE}",
+                "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el3}",
 
@@ -292,6 +295,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            pagetable = sym $pagetable,
             enable_mmu_el3 = sym $crate::__private::__enable_mmu_el3,
         );
     };
@@ -302,7 +306,7 @@ macro_rules! __enable_mmu {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __enable_mmu {
-    ($mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
                 r"movz \reg, :abs_g3:\imm",
@@ -317,13 +321,14 @@ macro_rules! __enable_mmu {
                 "mov_i x8, {MAIR_VALUE}",
                 "mov_i x9, {TCR_VALUE}",
                 "mov_i x10, {SCTLR_VALUE}",
+                "adrp x11, {pagetable}",
 
-                "mrs x11, CurrentEL",
-                "ubfx x11, x11, #2, #2",
+                "mrs x12, CurrentEL",
+                "ubfx x12, x12, #2, #2",
 
-                "cmp x11, #3",
+                "cmp x12, #3",
                 "b.eq {enable_mmu_el3}",
-                "cmp x11, #2",
+                "cmp x12, #2",
                 "b.eq {enable_mmu_el2}",
                 "b {enable_mmu_el1}",
 
@@ -331,6 +336,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            pagetable = sym $pagetable,
             enable_mmu_el1 = sym $crate::__private::__enable_mmu_el1,
             enable_mmu_el2 = sym $crate::__private::__enable_mmu_el2,
             enable_mmu_el3 = sym $crate::__private::__enable_mmu_el3,
