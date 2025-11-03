@@ -19,6 +19,12 @@ mod entry;
 #[cfg(feature = "initial-pagetable")]
 mod pagetable;
 
+#[cfg(feature = "initial-pagetable")]
+#[doc(hidden)]
+pub mod __private {
+    pub use crate::pagetable::{__enable_mmu_el1, __enable_mmu_el2, __enable_mmu_el3};
+}
+
 #[cfg(any(feature = "exceptions", feature = "psci"))]
 use core::arch::asm;
 #[cfg(feature = "exceptions")]
@@ -42,7 +48,6 @@ global_asm!(include_str!("exceptions.S"));
 
 /// Sets the appropriate vbar to point to our `vector_table`, if the `exceptions` feature is
 /// enabled.
-#[unsafe(no_mangle)]
 extern "C" fn set_exception_vector() {
     // SAFETY: We provide a valid vector table.
     #[cfg(all(feature = "el1", feature = "exceptions"))]
@@ -74,9 +79,55 @@ extern "C" fn set_exception_vector() {
             out("x9") _,
         );
     }
+    #[cfg(all(
+        feature = "exceptions",
+        not(any(feature = "el1", feature = "el2", feature = "el3"))
+    ))]
+    {
+        let current_el: u64;
+        // SAFETY: Reading CurrentEL is always safe.
+        unsafe {
+            asm!(
+                "mrs {current_el}, CurrentEL",
+                options(nomem, nostack, preserves_flags),
+                current_el = out(reg) current_el,
+            );
+        }
+        match (current_el >> 2) & 0b11 {
+            // SAFETY: We provide a valid vector table.
+            1 => unsafe {
+                asm!(
+                    "adr x9, vector_table_el1",
+                    "msr vbar_el1, x9",
+                    options(nomem, nostack, preserves_flags),
+                    out("x9") _,
+                );
+            },
+            // SAFETY: We provide a valid vector table.
+            2 => unsafe {
+                asm!(
+                    "adr x9, vector_table_el2",
+                    "msr vbar_el2, x9",
+                    options(nomem, nostack, preserves_flags),
+                    out("x9") _,
+                );
+            },
+            // SAFETY: We provide a valid vector table.
+            3 => unsafe {
+                asm!(
+                    "adr x9, vector_table_el3",
+                    "msr vbar_el3, x9",
+                    options(nomem, nostack, preserves_flags),
+                    out("x9") _,
+                );
+            },
+            _ => {
+                panic!("Unexpected EL");
+            }
+        }
+    }
 }
 
-#[unsafe(no_mangle)]
 extern "C" fn rust_entry(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
     set_exception_vector();
     __main(arg0, arg1, arg2, arg3)

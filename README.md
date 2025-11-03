@@ -46,7 +46,7 @@ fn main() {
 
 ## Features
 
-`el1`, `exceptions`, `initial-pagetable` and `psci` are enabled by default.
+`exceptions`, `initial-pagetable` and `psci` are enabled by default.
 
 ### `el1`
 
@@ -114,6 +114,10 @@ This is especially important if running at EL1 in a VM, as accessing memory with
 while the hypervisor or host has cacheable aliases to the same memory can lead to cache coherency
 issues. Even if the host doesn't explicitly access the memory, speculative accesses can lead to
 cache fills.
+
+This may be combined with one of the `elX` features to set up the page table for that exception
+level. If not, the exception level will be checked at runtime and the corresponding system registers
+used.
 
 ### `psci`
 
