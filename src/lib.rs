@@ -79,37 +79,52 @@ extern "C" fn set_exception_vector() {
             out("x9") _,
         );
     }
-    // SAFETY: We provide a valid vector table.
     #[cfg(all(
         feature = "exceptions",
         not(any(feature = "el1", feature = "el2", feature = "el3"))
     ))]
-    unsafe {
-        asm!(
-            "mrs x9, CurrentEL",
-            "ubfx x9, x9, #2, #2",
-
-            "cmp x9, #3",
-            "b.ne 1f",
-            "adr x9, vector_table_el3",
-            "msr vbar_el3, x9",
-            "b 3f",
-
-        "1:",
-            "cmp x9, #2",
-            "b.ne 2f",
-            "adr x9, vector_table_el2",
-            "msr vbar_el2, x9",
-            "b 3f",
-
-        "2:",
-            "adr x9, vector_table_el1",
-            "msr vbar_el1, x9",
-
-        "3:",
-            options(nomem, nostack),
-            out("x9") _,
-        );
+    {
+        let current_el: u64;
+        // SAFETY: Reading CurrentEL is always safe.
+        unsafe {
+            asm!(
+                "mrs {current_el}, CurrentEL",
+                options(nomem, nostack, preserves_flags),
+                current_el = out(reg) current_el,
+            );
+        }
+        match (current_el >> 2) & 0b11 {
+            // SAFETY: We provide a valid vector table.
+            1 => unsafe {
+                asm!(
+                    "adr x9, vector_table_el1",
+                    "msr vbar_el1, x9",
+                    options(nomem, nostack, preserves_flags),
+                    out("x9") _,
+                );
+            },
+            // SAFETY: We provide a valid vector table.
+            2 => unsafe {
+                asm!(
+                    "adr x9, vector_table_el2",
+                    "msr vbar_el2, x9",
+                    options(nomem, nostack, preserves_flags),
+                    out("x9") _,
+                );
+            },
+            // SAFETY: We provide a valid vector table.
+            3 => unsafe {
+                asm!(
+                    "adr x9, vector_table_el3",
+                    "msr vbar_el3, x9",
+                    options(nomem, nostack, preserves_flags),
+                    out("x9") _,
+                );
+            },
+            _ => {
+                panic!("Unexpected EL");
+            }
+        }
     }
 }
 
