@@ -228,7 +228,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
-            enable_mmu_el1 = sym $crate::__enable_mmu_el1,
+            enable_mmu_el1 = sym $crate::__private::__enable_mmu_el1,
         );
     };
 }
@@ -260,7 +260,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
-            enable_mmu_el2 = sym $crate::__enable_mmu_el2,
+            enable_mmu_el2 = sym $crate::__private::__enable_mmu_el2,
         );
     };
 }
@@ -292,7 +292,7 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
-            enable_mmu_el3 = sym $crate::__enable_mmu_el3,
+            enable_mmu_el3 = sym $crate::__private::__enable_mmu_el3,
         );
     };
 }
@@ -331,9 +331,9 @@ macro_rules! __enable_mmu {
             MAIR_VALUE = const $mair,
             TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
-            enable_mmu_el1 = sym $crate::__enable_mmu_el1,
-            enable_mmu_el2 = sym $crate::__enable_mmu_el2,
-            enable_mmu_el3 = sym $crate::__enable_mmu_el3,
+            enable_mmu_el1 = sym $crate::__private::__enable_mmu_el1,
+            enable_mmu_el2 = sym $crate::__private::__enable_mmu_el2,
+            enable_mmu_el3 = sym $crate::__private::__enable_mmu_el3,
         );
     };
 }

@@ -19,6 +19,12 @@ mod entry;
 #[cfg(feature = "initial-pagetable")]
 mod pagetable;
 
+#[cfg(feature = "initial-pagetable")]
+#[doc(hidden)]
+pub mod __private {
+    pub use crate::pagetable::{__enable_mmu_el1, __enable_mmu_el2, __enable_mmu_el3};
+}
+
 #[cfg(any(feature = "exceptions", feature = "psci"))]
 use core::arch::asm;
 #[cfg(feature = "exceptions")]
@@ -27,10 +33,7 @@ use core::arch::global_asm;
 use core::arch::naked_asm;
 pub use entry::secondary_entry;
 #[cfg(feature = "initial-pagetable")]
-pub use pagetable::{
-    __enable_mmu_el1, __enable_mmu_el2, __enable_mmu_el3, DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR,
-    InitialPagetable,
-};
+pub use pagetable::{DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable};
 
 #[cfg(not(feature = "initial-pagetable"))]
 #[unsafe(naked)]
