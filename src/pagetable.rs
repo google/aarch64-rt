@@ -143,7 +143,7 @@ macro_rules! initial_pagetable {
 /// This function doesn't follow the standard aarch64 calling convention. It must only be called
 /// from assembly code, early in the boot process.
 ///
-/// Expects the MAIR value in x8, the TCR value in x9, the SCTLR value in x10 and the root pagetable
+/// Expects the MAIR value in x8, the SCTLR value in x9, the TCR value in x10 and the root pagetable
 /// address in x11.
 ///
 /// Clobbers x8-x9.
@@ -157,8 +157,8 @@ pub unsafe extern "C" fn __enable_mmu_el1() {
         "msr ttbr0_el1, x11",
         // Copy the supported PA range into TCR_EL1.IPS.
         "mrs x8, id_aa64mmfr0_el1",
-        "bfi x9, x8, #32, #4",
-        "msr tcr_el1, x9",
+        "bfi x10, x8, #32, #4",
+        "msr tcr_el1, x10",
         // Ensure everything before this point has completed, then invalidate any
         // potentially stale local TLB entries before they start being used.
         "isb",
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn __enable_mmu_el1() {
         "isb",
         // Configure SCTLR_EL1 to enable MMU and cache and don't proceed until this has
         // completed.
-        "msr sctlr_el1, x10",
+        "msr sctlr_el1, x9",
         "isb",
         "ret"
     );
@@ -181,7 +181,7 @@ pub unsafe extern "C" fn __enable_mmu_el1() {
 /// This function doesn't follow the standard aarch64 calling convention. It must only be called
 /// from assembly code, early in the boot process.
 ///
-/// Expects the MAIR value in x8, the TCR value in x9, the SCTLR value in x10 and the root pagetable
+/// Expects the MAIR value in x8, the SCTLR value in x9, the TCR value in x10 and the root pagetable
 /// address in x11.
 ///
 /// Clobbers x8-x9.
@@ -195,8 +195,8 @@ pub unsafe extern "C" fn __enable_mmu_el2() {
         "msr ttbr0_el2, x11",
         // Copy the supported PA range into TCR_EL2.IPS.
         "mrs x8, id_aa64mmfr0_el1",
-        "bfi x9, x8, #32, #4",
-        "msr tcr_el2, x9",
+        "bfi x10, x8, #32, #4",
+        "msr tcr_el2, x10",
         // Ensure everything before this point has completed, then invalidate any
         // potentially stale local TLB entries before they start being used.
         "isb",
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn __enable_mmu_el2() {
         "isb",
         // Configure SCTLR_EL2 to enable MMU and cache and don't proceed until this has
         // completed.
-        "msr sctlr_el2, x10",
+        "msr sctlr_el2, x9",
         "isb",
         "ret"
     );
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn __enable_mmu_el2() {
 /// This function doesn't follow the standard aarch64 calling convention. It must only be called
 /// from assembly code, early in the boot process.
 ///
-/// Expects the MAIR value in x8, the TCR value in x9, the SCTLR value in x10 and the root pagetable
+/// Expects the MAIR value in x8, the SCTLR value in x9, the TCR value in x10 and the root pagetable
 /// address in x11.
 ///
 /// Clobbers x8-x9.
@@ -233,8 +233,8 @@ pub unsafe extern "C" fn __enable_mmu_el3() {
         "msr ttbr0_el3, x11",
         // Copy the supported PA range into TCR_EL3.IPS.
         "mrs x8, id_aa64mmfr0_el1",
-        "bfi x9, x8, #32, #4",
-        "msr tcr_el3, x9",
+        "bfi x10, x8, #32, #4",
+        "msr tcr_el3, x10",
         // Ensure everything before this point has completed, then invalidate any
         // potentially stale local TLB entries before they start being used.
         "isb",
@@ -244,7 +244,7 @@ pub unsafe extern "C" fn __enable_mmu_el3() {
         "isb",
         // Configure SCTLR_EL3 to enable MMU and cache and don't proceed until this has
         // completed.
-        "msr sctlr_el3, x10",
+        "msr sctlr_el3, x9",
         "isb",
         "ret"
     );
@@ -270,8 +270,8 @@ macro_rules! enable_mmu {
             ".global enable_mmu",
             "enable_mmu:",
                 "mov_i x8, {MAIR_VALUE}",
-                "mov_i x10, {SCTLR_VALUE}",
-                "mov_i x9, {TCR_VALUE}",
+                "mov_i x9 {SCTLR_VALUE}",
+                "mov_i x10, {TCR_VALUE}",
                 "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el1}",
@@ -309,8 +309,8 @@ macro_rules! enable_mmu {
             ".global enable_mmu",
             "enable_mmu:",
                 "mov_i x8, {MAIR_VALUE}",
-                "mov_i x10, {SCTLR_VALUE}",
-                "mov_i x9, {TCR_VALUE}",
+                "mov_i x9, {SCTLR_VALUE}",
+                "mov_i x10, {TCR_VALUE}",
                 "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el2}",
@@ -348,8 +348,8 @@ macro_rules! enable_mmu {
             ".global enable_mmu",
             "enable_mmu:",
                 "mov_i x8, {MAIR_VALUE}",
-                "mov_i x10, {SCTLR_VALUE}",
-                "mov_i x9, {TCR_VALUE}",
+                "mov_i x9, {SCTLR_VALUE}",
+                "mov_i x10, {TCR_VALUE}",
                 "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el3}",
@@ -387,7 +387,7 @@ macro_rules! enable_mmu {
             ".global enable_mmu",
             "enable_mmu:",
                 "mov_i x8, {MAIR_VALUE}",
-                "mov_i x10, {SCTLR_VALUE}",
+                "mov_i x9, {SCTLR_VALUE}",
                 "adrp x11, {pagetable}",
 
                 "mrs x12, CurrentEL",
@@ -395,15 +395,15 @@ macro_rules! enable_mmu {
 
                 "cmp x12, #3",
                 "b.ne 0f",
-                "mov_i x9, {TCR_EL3_VALUE}",
+                "mov_i x10, {TCR_EL3_VALUE}",
                 "b {enable_mmu_el3}",
             "0:",
                 "cmp x12, #2",
                 "b.ne 1f",
-                "mov_i x9, {TCR_EL2_VALUE}",
+                "mov_i x10, {TCR_EL2_VALUE}",
                 "b {enable_mmu_el2}",
             "1:",
-                "mov_i x9, {TCR_EL1_VALUE}",
+                "mov_i x10, {TCR_EL1_VALUE}",
                 "b {enable_mmu_el1}",
 
             ".purgem mov_i",
