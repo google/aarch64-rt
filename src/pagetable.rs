@@ -11,14 +11,16 @@ const MAIR_MEM_WBWA: u64 = 0xff;
 /// The default value used for MAIR_ELx.
 pub const DEFAULT_MAIR: u64 = MAIR_DEV_NGNRE | MAIR_MEM_WBWA << 8;
 
-/// 4 KiB granule size for TTBR0_ELx.
-const TCR_TG0_4KB: u64 = 0x0 << 14;
 /// 4 KiB granule size for TTBR1_ELx.
-#[cfg(not(feature = "el3"))]
 const TCR_TG1_4KB: u64 = 0x2 << 30;
 /// Disable translation table walk for TTBR1_ELx, generating a translation fault instead.
-#[cfg(not(feature = "el3"))]
 const TCR_EPD1: u64 = 0x1 << 23;
+/// 40 bits, 1 TiB.
+const TCR_EL1_IPS_1TB: u64 = 0x2 << 32;
+/// 40 bits, 1 TiB.
+const TCR_EL2_PS_1TB: u64 = 0x2 << 16;
+/// 4 KiB granule size for TTBR0_ELx.
+const TCR_TG0_4KB: u64 = 0x0 << 14;
 /// Translation table walks for TTBR0_ELx are inner sharable.
 const TCR_SH_INNER: u64 = 0x3 << 12;
 /// Translation table walks for TTBR0_ELx are outer write-back read-allocate write-allocate
@@ -29,13 +31,21 @@ const TCR_RGN_OWB: u64 = 0x1 << 10;
 const TCR_RGN_IWB: u64 = 0x1 << 8;
 /// Size offset for TTBR0_ELx is 2**39 bytes (512 GiB).
 const TCR_T0SZ_512: u64 = 64 - 39;
-/// The default value used for TCR_EL1 or TCR_EL2.
-#[cfg(not(feature = "el3"))]
-pub const DEFAULT_TCR: u64 =
-    TCR_TG0_4KB | TCR_TG1_4KB | TCR_EPD1 | TCR_RGN_OWB | TCR_RGN_IWB | TCR_SH_INNER | TCR_T0SZ_512;
+/// The default value used for TCR_EL1.
+pub const DEFAULT_TCR_EL1: u64 = TCR_EL1_IPS_1TB
+    | TCR_TG1_4KB
+    | TCR_EPD1
+    | TCR_TG0_4KB
+    | TCR_SH_INNER
+    | TCR_RGN_OWB
+    | TCR_RGN_IWB
+    | TCR_T0SZ_512;
+/// The default value used for TCR_EL2.
+pub const DEFAULT_TCR_EL2: u64 =
+    TCR_EL2_PS_1TB | TCR_TG0_4KB | TCR_SH_INNER | TCR_RGN_OWB | TCR_RGN_IWB | TCR_T0SZ_512;
 /// The default value used for TCR_EL3.
-#[cfg(feature = "el3")]
-pub const DEFAULT_TCR: u64 = TCR_TG0_4KB | TCR_RGN_OWB | TCR_RGN_IWB | TCR_SH_INNER | TCR_T0SZ_512;
+pub const DEFAULT_TCR_EL3: u64 =
+    TCR_TG0_4KB | TCR_RGN_OWB | TCR_RGN_IWB | TCR_SH_INNER | TCR_T0SZ_512;
 
 /// Stage 1 instruction access cacheability is unaffected.
 const SCTLR_ELX_I: u64 = 0x1 << 12;
@@ -65,22 +75,63 @@ pub const DEFAULT_SCTLR: u64 = SCTLR_ELX_M
 /// Provides an initial pagetable which can be used before any Rust code is run.
 ///
 /// The `initial-pagetable` feature must be enabled for this to be used.
+#[cfg(any(feature = "el1", feature = "el2", feature = "el3"))]
 #[macro_export]
 macro_rules! initial_pagetable {
-    ($value:expr, $mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($value:expr, $mair:expr, $sctlr:expr, $tcr:expr) => {
         static INITIAL_PAGETABLE: $crate::InitialPagetable = $value;
 
         $crate::enable_mmu!(INITIAL_PAGETABLE, $mair, $tcr, $sctlr);
     };
     ($value:expr, $mair:expr) => {
-        initial_pagetable!($value, $mair, $crate::DEFAULT_TCR, $crate::DEFAULT_SCTLR);
+        $crate::initial_pagetable!($value, $mair, $crate::DEFAULT_SCTLR, $crate::DEFAULT_TCR);
+    };
+    ($value:expr) => {
+        $crate::initial_pagetable!(
+            $value,
+            $crate::DEFAULT_MAIR,
+            $crate::DEFAULT_SCTLR,
+            $crate::DEFAULT_TCR
+        );
+    };
+}
+
+/// Provides an initial pagetable which can be used before any Rust code is run.
+///
+/// The `initial-pagetable` feature must be enabled for this to be used.
+#[cfg(not(any(feature = "el1", feature = "el2", feature = "el3")))]
+#[macro_export]
+macro_rules! initial_pagetable {
+    ($value:expr, $mair:expr, $sctlr:expr, $tcr_el1:expr, $tcr_el2:expr, $tcr_el3:expr) => {
+        static INITIAL_PAGETABLE: $crate::InitialPagetable = $value;
+
+        $crate::enable_mmu!(
+            INITIAL_PAGETABLE,
+            $mair,
+            $sctlr,
+            $tcr_el1,
+            $tcr_el2,
+            $tcr_el3
+        );
+    };
+    ($value:expr, $mair:expr) => {
+        initial_pagetable!(
+            $value,
+            $mair,
+            $crate::DEFAULT_SCTLR,
+            $crate::DEFAULT_TCR_EL1,
+            $crate::DEFAULT_TCR_EL2,
+            $crate::DEFAULT_TCR_EL3
+        );
     };
     ($value:expr) => {
         initial_pagetable!(
             $value,
             $crate::DEFAULT_MAIR,
-            $crate::DEFAULT_TCR,
-            $crate::DEFAULT_SCTLR
+            $crate::DEFAULT_SCTLR,
+            $crate::DEFAULT_TCR_EL1,
+            $crate::DEFAULT_TCR_EL2,
+            $crate::DEFAULT_TCR_EL3
         );
     };
 }
@@ -206,7 +257,7 @@ pub unsafe extern "C" fn __enable_mmu_el3() {
 #[cfg(feature = "el1")]
 #[macro_export]
 macro_rules! enable_mmu {
-    ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($pagetable:path, $mair:expr, $sctlr:expr, $tcr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
                 r"movz \reg, :abs_g3:\imm",
@@ -219,19 +270,22 @@ macro_rules! enable_mmu {
             ".global enable_mmu",
             "enable_mmu:",
                 "mov_i x8, {MAIR_VALUE}",
-                "mov_i x9, {TCR_VALUE}",
                 "mov_i x10, {SCTLR_VALUE}",
+                "mov_i x9, {TCR_VALUE}",
                 "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el1}",
 
             ".purgem mov_i",
             MAIR_VALUE = const $mair,
-            TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            TCR_VALUE = const $tcr,
             pagetable = sym $pagetable,
             enable_mmu_el1 = sym $crate::__private::__enable_mmu_el1,
         );
+    };
+    ($pagetable:path) => {
+        $crate::enable_mmu!($pagetable, $crate::DEFAULT_MAIR, $crate::DEFAULT_SCTLR, $crate::DEFAULT_TCR_EL1);
     };
 }
 
@@ -242,7 +296,7 @@ macro_rules! enable_mmu {
 #[cfg(feature = "el2")]
 #[macro_export]
 macro_rules! enable_mmu {
-    ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($pagetable:path, $mair:expr, $sctlr:expr, $tcr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
                 r"movz \reg, :abs_g3:\imm",
@@ -255,19 +309,22 @@ macro_rules! enable_mmu {
             ".global enable_mmu",
             "enable_mmu:",
                 "mov_i x8, {MAIR_VALUE}",
-                "mov_i x9, {TCR_VALUE}",
                 "mov_i x10, {SCTLR_VALUE}",
+                "mov_i x9, {TCR_VALUE}",
                 "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el2}",
 
             ".purgem mov_i",
             MAIR_VALUE = const $mair,
-            TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            TCR_VALUE = const $tcr,
             pagetable = sym $pagetable,
             enable_mmu_el2 = sym $crate::__private::__enable_mmu_el2,
         );
+    };
+    ($pagetable:path) => {
+        $crate::enable_mmu!($pagetable, $crate::DEFAULT_MAIR, $crate::DEFAULT_SCTLR, $crate::DEFAULT_TCR_EL2);
     };
 }
 
@@ -278,7 +335,7 @@ macro_rules! enable_mmu {
 #[cfg(feature = "el3")]
 #[macro_export]
 macro_rules! enable_mmu {
-    ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($pagetable:path, $mair:expr, $sctlr:expr, $tcr:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
                 r"movz \reg, :abs_g3:\imm",
@@ -291,19 +348,22 @@ macro_rules! enable_mmu {
             ".global enable_mmu",
             "enable_mmu:",
                 "mov_i x8, {MAIR_VALUE}",
-                "mov_i x9, {TCR_VALUE}",
                 "mov_i x10, {SCTLR_VALUE}",
+                "mov_i x9, {TCR_VALUE}",
                 "adrp x11, {pagetable}",
 
                 "b {enable_mmu_el3}",
 
             ".purgem mov_i",
             MAIR_VALUE = const $mair,
-            TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            TCR_VALUE = const $tcr,
             pagetable = sym $pagetable,
             enable_mmu_el3 = sym $crate::__private::__enable_mmu_el3,
         );
+    };
+    ($pagetable:path) => {
+        $crate::enable_mmu!($pagetable, $crate::DEFAULT_MAIR, $crate::DEFAULT_SCTLR, $crate::DEFAULT_TCR_EL3);
     };
 }
 
@@ -314,7 +374,7 @@ macro_rules! enable_mmu {
 #[cfg(not(any(feature = "el1", feature = "el2", feature = "el3")))]
 #[macro_export]
 macro_rules! enable_mmu {
-    ($pagetable:path, $mair:expr, $tcr:expr, $sctlr:expr) => {
+    ($pagetable:path, $mair:expr, $sctlr:expr, $tcr_el1:expr, $tcr_el2:expr, $tcr_el3:expr) => {
         core::arch::global_asm!(
             r".macro mov_i, reg:req, imm:req",
                 r"movz \reg, :abs_g3:\imm",
@@ -327,7 +387,6 @@ macro_rules! enable_mmu {
             ".global enable_mmu",
             "enable_mmu:",
                 "mov_i x8, {MAIR_VALUE}",
-                "mov_i x9, {TCR_VALUE}",
                 "mov_i x10, {SCTLR_VALUE}",
                 "adrp x11, {pagetable}",
 
@@ -335,19 +394,38 @@ macro_rules! enable_mmu {
                 "ubfx x12, x12, #2, #2",
 
                 "cmp x12, #3",
-                "b.eq {enable_mmu_el3}",
+                "b.ne 0f",
+                "mov_i x9, {TCR_EL3_VALUE}",
+                "b {enable_mmu_el3}",
+            "0:",
                 "cmp x12, #2",
-                "b.eq {enable_mmu_el2}",
+                "b.ne 1f",
+                "mov_i x9, {TCR_EL2_VALUE}",
+                "b {enable_mmu_el2}",
+            "1:",
+                "mov_i x9, {TCR_EL1_VALUE}",
                 "b {enable_mmu_el1}",
 
             ".purgem mov_i",
             MAIR_VALUE = const $mair,
-            TCR_VALUE = const $tcr,
             SCTLR_VALUE = const $sctlr,
+            TCR_EL1_VALUE = const $tcr_el1,
+            TCR_EL2_VALUE = const $tcr_el2,
+            TCR_EL3_VALUE = const $tcr_el3,
             pagetable = sym $pagetable,
             enable_mmu_el1 = sym $crate::__private::__enable_mmu_el1,
             enable_mmu_el2 = sym $crate::__private::__enable_mmu_el2,
             enable_mmu_el3 = sym $crate::__private::__enable_mmu_el3,
+        );
+    };
+    ($pagetable:path) => {
+        $crate::enable_mmu!(
+            $pagetable,
+            $crate::DEFAULT_MAIR,
+            $crate::DEFAULT_SCTLR,
+            $crate::DEFAULT_TCR_EL1,
+            $crate::DEFAULT_TCR_EL2,
+            $crate::DEFAULT_TCR_EL3
         );
     };
 }

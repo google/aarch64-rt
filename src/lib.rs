@@ -32,8 +32,17 @@ use core::arch::global_asm;
 #[cfg(not(feature = "initial-pagetable"))]
 use core::arch::naked_asm;
 pub use entry::secondary_entry;
+#[cfg(all(feature = "initial-pagetable", feature = "el1"))]
+pub use pagetable::DEFAULT_TCR_EL1 as DEFAULT_TCR;
+#[cfg(all(feature = "initial-pagetable", feature = "el2"))]
+pub use pagetable::DEFAULT_TCR_EL2 as DEFAULT_TCR;
+#[cfg(all(feature = "initial-pagetable", feature = "el3"))]
+pub use pagetable::DEFAULT_TCR_EL3 as DEFAULT_TCR;
 #[cfg(feature = "initial-pagetable")]
-pub use pagetable::{DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR, InitialPagetable};
+pub use pagetable::{
+    DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR_EL1, DEFAULT_TCR_EL2, DEFAULT_TCR_EL3,
+    InitialPagetable,
+};
 
 #[cfg(not(feature = "initial-pagetable"))]
 #[unsafe(naked)]
