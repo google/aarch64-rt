@@ -210,11 +210,22 @@ impl StackPage {
 }
 
 #[cfg(feature = "psci")]
+#[repr(C, align(16))] // align to the aarch64 stack requirements
+struct StartCoreStack<F> {
+    trampoline_ptr: unsafe extern "C" fn(*mut StartCoreStack<F>) -> !,
+    entry: Option<F>,
+}
+
+#[cfg(feature = "psci")]
 /// Issues a PSCI CPU_ON call to start the CPU core with the given MPIDR.
 ///
 /// This starts the core with an assembly entry point which will enable the MMU, disable trapping of
 /// floating point instructions, initialise the stack pointer to the given value, and then jump to
 /// the given Rust entry point function, passing it the given argument value.
+///
+/// The closure passed as `rust_entry` **should never return**. Because the
+/// [never type has not been stabilized](https://github.com/rust-lang/rust/issues/35121)), this
+/// cannot be enforced by the type system yet.
 ///
 /// # Safety
 ///
@@ -223,31 +234,61 @@ impl StackPage {
 /// time. It must be mapped both for the current core to write to it (to pass initial parameters)
 /// and in the initial page table which the core being started will used, with the same memory
 /// attributes for both.
-pub unsafe fn start_core<C: smccc::Call, const N: usize>(
+pub unsafe fn start_core<C: smccc::Call, F, const N: usize>(
     mpidr: u64,
     stack: *mut Stack<N>,
-    rust_entry: extern "C" fn(arg: u64) -> !,
-    arg: u64,
-) -> Result<(), smccc::psci::Error> {
-    assert!(stack.is_aligned());
-    // The stack grows downwards on aarch64, so get a pointer to the end of the stack.
-    let stack_end = stack.wrapping_add(1);
+    rust_entry: F,
+) -> Result<(), smccc::psci::Error>
+where
+    // TODO: change to FnOnce() -> ! when the never type is stabilized:
+    // https://github.com/rust-lang/rust/issues/35121
+    F: FnOnce() + Send + 'static,
+{
+    const {
+        assert!(
+            core::mem::size_of::<StartCoreStack<F>>() <= core::mem::size_of::<Stack<N>>(),
+            "the `rust_entry` closure is too big to fit in the core stack"
+        );
+    }
 
-    // Write Rust entry point to the stack, so the assembly entry point can jump to it.
-    let params = stack_end as *mut u64;
+    assert!(stack.is_aligned());
+    let stack_end = stack.wrapping_add(1) as *mut StartCoreStack<F>;
+
+    // Write trampoline and the entry closure to the stack, so the assembly entry point can jump to it.
     // SAFETY: Our caller promised that the stack is valid and nothing else will access it.
     unsafe {
-        *params.wrapping_sub(1) = rust_entry as usize as _;
-        *params.wrapping_sub(2) = arg;
-    }
+        *stack_end.wrapping_sub(1) = StartCoreStack {
+            trampoline_ptr: trampoline::<F>,
+            entry: Some(rust_entry),
+        };
+    };
+
     // Wait for the stores above to complete before starting the secondary CPU core.
     dsb_st();
 
     smccc::psci::cpu_on::<C>(
         mpidr,
         secondary_entry as usize as _,
-        stack_end as usize as _,
+        stack_end.wrapping_sub(1) as usize as _,
     )
+}
+
+#[cfg(feature = "psci")]
+unsafe extern "C" fn trampoline<F>(start_args_ptr: *mut StartCoreStack<F>) -> !
+where
+    // TODO: change to FnOnce() -> ! when the never type is stabilized:
+    // https://github.com/rust-lang/rust/issues/35121
+    F: FnOnce() + Send + 'static,
+{
+    // SAFETY: `start_args_ptr` was created from a valid `F` in `start_core` and the memory is valid
+    // for the lifetime of the core.
+    let start_args = unsafe { &mut *start_args_ptr };
+    let entry = core::mem::take(&mut start_args.entry)
+        .expect("entry object should only ever be taken once");
+
+    entry();
+
+    panic!("rust_entry function passed to start_core should never return");
 }
 
 /// Data synchronisation barrier that waits for stores to complete, for the full system.

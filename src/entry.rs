@@ -69,14 +69,11 @@ pub unsafe extern "C" fn secondary_entry(stack_end: *mut u64) -> ! {
         "isb",
         // Set the stack pointer which was passed.
         "mov sp, x0",
-        // Load Rust entry point address and argument from the bottom of the stack into
-        // callee-saved registers.
-        "ldp x19, x20, [sp, #-16]",
+        // Load trampoline address.
+        "ldr x20, [sp]",
         // Set the exception vector.
         "bl {set_exception_vector}",
-        // Pass argument to Rust entry point.
-        "mov x0, x19",
-        // Call into Rust code.
+        // Call into Rust code. x0 already contains the argument.
         "br x20",
         set_exception_vector = sym crate::set_exception_vector,
     )
