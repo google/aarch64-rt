@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+### Bugfixes
+
+- Fixed bug with four-argument version of `initial_pagetable!` swapping TCR and SCTLR values.
+
 ## 0.3.0
 
 ### Breaking changes
