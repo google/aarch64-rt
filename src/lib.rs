@@ -241,6 +241,7 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
         unused,
         reason = "the fields are read in the `secondary_entry` assembly code"
     )]
+    #[repr(C)]
     struct StartCoreStack<F> {
         trampoline_ptr: unsafe extern "C" fn(&mut ManuallyDrop<F>) -> !,
         entry_ptr: *mut ManuallyDrop<F>,
@@ -250,7 +251,7 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
         assert!(
             core::mem::size_of::<StartCoreStack<F>>()
                 + 2 * core::mem::size_of::<F>()
-                + 2 * core::mem::align_of::<StartCoreStack<F>>()
+                + 2 * core::mem::align_of::<F>()
                 + 1024 // trampoline stack frame overhead
                 <= core::mem::size_of::<Stack<N>>(),
             "the `rust_entry` closure is too big to fit in the core stack"
