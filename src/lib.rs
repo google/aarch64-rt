@@ -46,6 +46,9 @@ pub use pagetable::{
     InitialPagetable,
 };
 
+#[cfg(feature = "psci")]
+use core::mem::ManuallyDrop;
+
 #[cfg(not(feature = "initial-pagetable"))]
 #[unsafe(naked)]
 #[unsafe(link_section = ".init")]
@@ -210,13 +213,6 @@ impl StackPage {
 }
 
 #[cfg(feature = "psci")]
-#[repr(C, align(16))] // align to the aarch64 stack requirements
-struct StartCoreStack<F> {
-    trampoline_ptr: unsafe extern "C" fn(*mut StartCoreStack<F>) -> !,
-    entry: Option<F>,
-}
-
-#[cfg(feature = "psci")]
 /// Issues a PSCI CPU_ON call to start the CPU core with the given MPIDR.
 ///
 /// This starts the core with an assembly entry point which will enable the MMU, disable trapping of
@@ -234,32 +230,51 @@ struct StartCoreStack<F> {
 /// time. It must be mapped both for the current core to write to it (to pass initial parameters)
 /// and in the initial page table which the core being started will used, with the same memory
 /// attributes for both.
-pub unsafe fn start_core<C: smccc::Call, F, const N: usize>(
+// TODO: change `F` generic bounds to `FnOnce() -> !` when the never type is stabilized:
+// https://github.com/rust-lang/rust/issues/35121
+pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: usize>(
     mpidr: u64,
     stack: *mut Stack<N>,
     rust_entry: F,
-) -> Result<(), smccc::psci::Error>
-where
-    // TODO: change to FnOnce() -> ! when the never type is stabilized:
-    // https://github.com/rust-lang/rust/issues/35121
-    F: FnOnce() + Send + 'static,
-{
+) -> Result<(), smccc::psci::Error> {
+    #[expect(
+        unused,
+        reason = "the fields are read in the `secondary_entry` assembly code"
+    )]
+    struct StartCoreStack<F> {
+        trampoline_ptr: unsafe extern "C" fn(&mut ManuallyDrop<F>) -> !,
+        entry_ptr: *mut ManuallyDrop<F>,
+    }
+
     const {
         assert!(
-            core::mem::size_of::<StartCoreStack<F>>() <= core::mem::size_of::<Stack<N>>(),
+            core::mem::size_of::<StartCoreStack<F>>()
+                + 2 * core::mem::size_of::<F>()
+                + 2 * core::mem::align_of::<StartCoreStack<F>>()
+                + 1024 // trampoline stack frame overhead
+                <= core::mem::size_of::<Stack<N>>(),
             "the `rust_entry` closure is too big to fit in the core stack"
         );
     }
 
+    let rust_entry = ManuallyDrop::new(rust_entry);
+
+    let stack_bottom = stack.cast::<u8>();
+    let align_offfset = stack.align_offset(core::mem::align_of::<F>());
+    let entry_ptr = stack_bottom
+        .wrapping_add(align_offfset)
+        .cast::<ManuallyDrop<F>>();
+
     assert!(stack.is_aligned());
     let stack_end = stack.wrapping_add(1) as *mut StartCoreStack<F>;
 
-    // Write trampoline and the entry closure to the stack, so the assembly entry point can jump to it.
+    // Write the trampoline and entry closure, so the assembly entry point can jump to it.
     // SAFETY: Our caller promised that the stack is valid and nothing else will access it.
     unsafe {
+        entry_ptr.write(rust_entry);
         *stack_end.wrapping_sub(1) = StartCoreStack {
             trampoline_ptr: trampoline::<F>,
-            entry: Some(rust_entry),
+            entry_ptr,
         };
     };
 
@@ -269,23 +284,23 @@ where
     smccc::psci::cpu_on::<C>(
         mpidr,
         secondary_entry as usize as _,
-        stack_end.wrapping_sub(1) as usize as _,
+        stack_end as usize as _,
     )
 }
 
 #[cfg(feature = "psci")]
-unsafe extern "C" fn trampoline<F>(start_args_ptr: *mut StartCoreStack<F>) -> !
-where
-    // TODO: change to FnOnce() -> ! when the never type is stabilized:
-    // https://github.com/rust-lang/rust/issues/35121
-    F: FnOnce() + Send + 'static,
-{
-    // SAFETY: `start_args_ptr` was created from a valid `F` in `start_core` and the memory is valid
-    // for the lifetime of the core.
-    let start_args = unsafe { &mut *start_args_ptr };
-    let entry = core::mem::take(&mut start_args.entry)
-        .expect("entry object should only ever be taken once");
-
+/// Used by [`start_core`] as an entry point for the secondary CPU core.
+///
+/// # Safety
+///
+/// This calls [`ManuallyDrop::take`] on the provided argument, so this function must be
+/// called at most once for a given instance of `F`.
+// TODO: change `F` generic bounds to `FnOnce() -> !` when the never type is stabilized:
+// https://github.com/rust-lang/rust/issues/35121
+unsafe extern "C" fn trampoline<F: FnOnce() + Send + 'static>(entry: &mut ManuallyDrop<F>) -> ! {
+    // SAFETY: the trampoline function is only ever called once after creating ManuallyDrop
+    // instance, so we won't call ManuallyDrop::take more than once.
+    let entry = unsafe { ManuallyDrop::take(entry) };
     entry();
 
     panic!("rust_entry function passed to start_core should never return");

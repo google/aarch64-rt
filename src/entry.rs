@@ -69,11 +69,13 @@ pub unsafe extern "C" fn secondary_entry(stack_end: *mut u64) -> ! {
         "isb",
         // Set the stack pointer which was passed.
         "mov sp, x0",
-        // Load trampoline address.
-        "ldr x20, [sp]",
+        // Load the trampoline address into x20 and closure address into x0.
+        // This is loaded from StartCoreStack.
+        "ldr x20, [sp, #-16]",
+        "ldr x0, [sp, #-8]",
         // Set the exception vector.
         "bl {set_exception_vector}",
-        // Call into Rust code. x0 already contains the argument.
+        // Call into Rust trampoline.
         "br x20",
         set_exception_vector = sym crate::set_exception_vector,
     )
