@@ -267,7 +267,7 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
         .cast::<ManuallyDrop<F>>();
 
     assert!(stack.is_aligned());
-    let stack_end = stack.wrapping_add(1) as *mut StartCoreStack<F>;
+    let stack_end = stack.wrapping_add(1).cast::<StartCoreStack<F>>();
 
     // Write the trampoline and entry closure, so the assembly entry point can jump to it.
     // SAFETY: Our caller promised that the stack is valid and nothing else will access it.
