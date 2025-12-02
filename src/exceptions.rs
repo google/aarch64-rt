@@ -68,22 +68,26 @@ impl Deref for RegisterStateRef<'_> {
 /// Each method has a default implementation which will panic.
 pub trait ExceptionHandlers {
     /// Handles synchronous exceptions from the current exception level.
-    extern "C" fn sync_current() {
+    extern "C" fn sync_current(register_state: RegisterStateRef) {
+        _ = register_state;
         panic!("Unexpected synchronous exception from current EL");
     }
 
     /// Handles IRQs from the current exception level.
-    extern "C" fn irq_current() {
+    extern "C" fn irq_current(register_state: RegisterStateRef) {
+        _ = register_state;
         panic!("Unexpected IRQ from current EL");
     }
 
     /// Handles FIQs from the current exception level.
-    extern "C" fn fiq_current() {
+    extern "C" fn fiq_current(register_state: RegisterStateRef) {
+        _ = register_state;
         panic!("Unexpected FIQ from current EL");
     }
 
     /// Handles SErrors from the current exception level.
-    extern "C" fn serror_current() {
+    extern "C" fn serror_current(register_state: RegisterStateRef) {
+        _ = register_state;
         panic!("Unexpected SError from current EL");
     }
 
@@ -182,17 +186,17 @@ macro_rules! exception_handlers {
  * SP0. It behaves similarly to the SPx case by first switching to SPx, doing
  * the work, then switching back to SP0 before returning.
  *
- * Switching to SPx and calling the Rust handler takes 16 instructions. To
- * restore and return we need an additional 16 instructions, so we can implement
- * the whole handler within the allotted 32 instructions.
+ * Switching to SPx and calling the Rust handler takes 17 instructions. To
+ * restore and return we would need need an additional 16 instructions which
+ * would take us over the limit of 32, so we instead jump to a separate function
+ * to do so. This makes the handler 18 instructions.
  */
 .macro current_exception_sp0 handler:req el:req
 	msr spsel, #1
 	save_volatile_to_stack \el
+	mov x0, sp
 	bl \handler
-	restore_volatile_from_stack \el
-	msr spsel, #0
-	eret
+	b restore_volatile_from_stack_sp0_\el
 .endm
 
 /**
@@ -214,7 +218,6 @@ macro_rules! exception_handlers {
 	restore_volatile_from_stack \el
 	eret
 .endm
-
 
 .macro vector_table el:req
 .section .text.vector_table_\el, "ax"
@@ -289,6 +292,24 @@ serr_lower_32_\el:
 vector_table el1
 vector_table el2
 vector_table el3
+
+.section .text.restore_volatile_from_stack_sp0_el1, "ax"
+restore_volatile_from_stack_sp0_el1:
+	restore_volatile_from_stack el1
+	msr spsel, #0
+	eret
+
+.section .text.restore_volatile_from_stack_sp0_el3, "ax"
+restore_volatile_from_stack_sp0_el2:
+	restore_volatile_from_stack el2
+	msr spsel, #0
+	eret
+
+.section .text.restore_volatile_from_stack_sp0_el3, "ax"
+restore_volatile_from_stack_sp0_el3:
+	restore_volatile_from_stack el3
+	msr spsel, #0
+	eret
             "#,
             sync_current = sym <$handlers as $crate::ExceptionHandlers>::sync_current,
             irq_current = sym <$handlers as $crate::ExceptionHandlers>::irq_current,

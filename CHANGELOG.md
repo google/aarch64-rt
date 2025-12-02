@@ -6,8 +6,8 @@
 
 - Added `ExceptionHandlers` trait and `exception_handlers!` macro to define exception handlers,
   rather than relying on global symbols.
-- Added `RegisterState` pointer parameter to lower EL exception handlers, and removed ELR and SPSR
-  parameters.
+- Added `RegisterStateRef` parameter to exception handlers to access the saved register state, and
+  removed ELR and SPSR parameters.
 
 ## 0.3.1
 
