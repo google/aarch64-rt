@@ -11,7 +11,9 @@ use aarch64_paging::{
     mair::{Mair, MairAttribute, NormalMemory},
     paging::Attributes,
 };
-use aarch64_rt::{InitialPagetable, entry, initial_pagetable};
+use aarch64_rt::{
+    ExceptionHandlers, InitialPagetable, entry, exception_handlers, initial_pagetable,
+};
 use arm_pl011_uart::{PL011Registers, Uart, UniqueMmioPointer};
 use core::{fmt::Write, panic::PanicInfo, ptr::NonNull};
 use smccc::{
@@ -63,6 +65,8 @@ initial_pagetable!(
     MAIR.0
 );
 
+exception_handlers!(Exceptions);
+
 entry!(main);
 fn main(arg0: u64, arg1: u64, arg2: u64, arg3: u64) -> ! {
     // SAFETY: The PL011 base address is mapped by the initial identity mapping, and this is the
@@ -88,42 +92,6 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-#[unsafe(no_mangle)]
-extern "C" fn sync_exception_current(_elr: u64, _spsr: u64) {
-    panic!("Unexpected sync_exception_current");
-}
+struct Exceptions;
 
-#[unsafe(no_mangle)]
-extern "C" fn irq_current(_elr: u64, _spsr: u64) {
-    panic!("Unexpected irq_current");
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn fiq_current(_elr: u64, _spsr: u64) {
-    panic!("Unexpected fiq_current");
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn serr_current(_elr: u64, _spsr: u64) {
-    panic!("Unexpected serr_current");
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn sync_lower(_elr: u64, _spsr: u64) {
-    panic!("Unexpected sync_lower");
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn irq_lower(_elr: u64, _spsr: u64) {
-    panic!("Unexpected irq_lower");
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn fiq_lower(_elr: u64, _spsr: u64) {
-    panic!("Unexpected fiq_lower");
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn serr_lower(_elr: u64, _spsr: u64) {
-    panic!("Unexpected serr_lower");
-}
+impl ExceptionHandlers for Exceptions {}

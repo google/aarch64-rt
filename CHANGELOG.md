@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- Added `ExceptionHandlers` trait and `exception_handlers!` macro to define exception handlers,
+  rather than relying on global symbols.
+
 ## 0.3.1
 
 ### Bugfixes

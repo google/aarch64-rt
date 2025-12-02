@@ -16,6 +16,8 @@
 compile_error!("Only one `el` feature may be enabled at once.");
 
 mod entry;
+#[cfg(feature = "exceptions")]
+mod exceptions;
 #[cfg(feature = "initial-pagetable")]
 mod pagetable;
 
@@ -27,11 +29,11 @@ pub mod __private {
 
 #[cfg(any(feature = "exceptions", feature = "psci"))]
 use core::arch::asm;
-#[cfg(feature = "exceptions")]
-use core::arch::global_asm;
 #[cfg(not(feature = "initial-pagetable"))]
 use core::arch::naked_asm;
 pub use entry::secondary_entry;
+#[cfg(feature = "exceptions")]
+pub use exceptions::ExceptionHandlers;
 #[cfg(all(feature = "initial-pagetable", feature = "el1"))]
 pub use pagetable::DEFAULT_TCR_EL1 as DEFAULT_TCR;
 #[cfg(all(feature = "initial-pagetable", feature = "el2"))]
@@ -51,9 +53,6 @@ pub use pagetable::{
 extern "C" fn enable_mmu() {
     naked_asm!("ret")
 }
-
-#[cfg(feature = "exceptions")]
-global_asm!(include_str!("exceptions.S"));
 
 /// Sets the appropriate vbar to point to our `vector_table`, if the `exceptions` feature is
 /// enabled.

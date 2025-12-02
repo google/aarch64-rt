@@ -1,10 +1,58 @@
-/*
- * Copyright 2025 The aarch64-rt Authors.
- *
- * This project is dual-licensed under Apache 2.0 and MIT terms.
- * See LICENSE-APACHE and LICENSE-MIT for details.
- */
+// Copyright 2025 The aarch64-rt Authors.
+// This project is dual-licensed under Apache 2.0 and MIT terms.
+// See LICENSE-APACHE and LICENSE-MIT for details.
 
+/// Functions to handle aarch64 exceptions.
+///
+/// Each method has a default implementation which will panic.
+pub trait ExceptionHandlers {
+    /// Handles synchronous exceptions from the current exception level.
+    extern "C" fn sync_current() {
+        panic!("Unexpected synchronous exception from current EL");
+    }
+
+    /// Handles IRQs from the current exception level.
+    extern "C" fn irq_current() {
+        panic!("Unexpected IRQ from current EL");
+    }
+
+    /// Handles FIQs from the current exception level.
+    extern "C" fn fiq_current() {
+        panic!("Unexpected FIQ from current EL");
+    }
+
+    /// Handles SErrors from the current exception level.
+    extern "C" fn serror_current() {
+        panic!("Unexpected SError from current EL");
+    }
+
+    /// Handles synchronous exceptions from a lower exception level.
+    extern "C" fn sync_lower() {
+        panic!("Unexpected synchronous exception from lower EL");
+    }
+
+    /// Handles IRQs from the a lower exception level.
+    extern "C" fn irq_lower() {
+        panic!("Unexpected IRQ from lower EL");
+    }
+
+    /// Handles FIQs from the a lower exception level.
+    extern "C" fn fiq_lower() {
+        panic!("Unexpected FIQ from lower EL");
+    }
+
+    /// Handles SErrors from a lower exception level.
+    extern "C" fn serror_lower() {
+        panic!("Unexpected SError from lower EL");
+    }
+}
+
+/// Registers an implementation of the [`ExceptionHandlers`] trait to handle exceptions.
+#[macro_export]
+macro_rules! exception_handlers {
+    ($handlers:ty) => {
+        core::arch::global_asm!(
+            r#"
 /**
  * Saves the volatile registers onto the stack. This currently takes 14
  * instructions, so it can be used in exception handlers with 18 instructions
@@ -108,70 +156,82 @@
 .balign 0x800
 vector_table_\el:
 sync_cur_sp0_\el:
-	current_exception_sp0 sync_exception_current \el
+	current_exception_sp0 {sync_current} \el
 
 .balign 0x80
 irq_cur_sp0_\el:
-	current_exception_sp0 irq_current \el
+	current_exception_sp0 {irq_current} \el
 
 .balign 0x80
 fiq_cur_sp0_\el:
-	current_exception_sp0 fiq_current \el
+	current_exception_sp0 {fiq_current} \el
 
 .balign 0x80
 serr_cur_sp0_\el:
-	current_exception_sp0 serr_current \el
+	current_exception_sp0 {serror_current} \el
 
 .balign 0x80
 sync_cur_spx_\el:
-	current_exception_spx sync_exception_current \el
+	current_exception_spx {sync_current} \el
 
 .balign 0x80
 irq_cur_spx_\el:
-	current_exception_spx irq_current \el
+	current_exception_spx {irq_current} \el
 
 .balign 0x80
 fiq_cur_spx_\el:
-	current_exception_spx fiq_current \el
+	current_exception_spx {fiq_current} \el
 
 .balign 0x80
 serr_cur_spx_\el:
-	current_exception_spx serr_current \el
+	current_exception_spx {serror_current} \el
 
 .balign 0x80
 sync_lower_64_\el:
-	current_exception_spx sync_lower \el
+	current_exception_spx {sync_lower} \el
 
 .balign 0x80
 irq_lower_64_\el:
-	current_exception_spx irq_lower \el
+	current_exception_spx {irq_lower} \el
 
 .balign 0x80
 fiq_lower_64_\el:
-	current_exception_spx fiq_lower \el
+	current_exception_spx {fiq_lower} \el
 
 .balign 0x80
 serr_lower_64_\el:
-	current_exception_spx serr_lower \el
+	current_exception_spx {serror_lower} \el
 
 .balign 0x80
 sync_lower_32_\el:
-	current_exception_spx sync_lower \el
+	current_exception_spx {sync_lower} \el
 
 .balign 0x80
 irq_lower_32_\el:
-	current_exception_spx irq_lower \el
+	current_exception_spx {irq_lower} \el
 
 .balign 0x80
 fiq_lower_32_\el:
-	current_exception_spx fiq_lower \el
+	current_exception_spx {fiq_lower} \el
 
 .balign 0x80
 serr_lower_32_\el:
-	current_exception_spx serr_lower \el
+	current_exception_spx {serror_lower} \el
 
 .endm
 
 vector_table el1
 vector_table el2
 vector_table el3
+            "#,
+            sync_current = sym <$handlers as $crate::ExceptionHandlers>::sync_current,
+            irq_current = sym <$handlers as $crate::ExceptionHandlers>::irq_current,
+            fiq_current = sym <$handlers as $crate::ExceptionHandlers>::fiq_current,
+            serror_current = sym <$handlers as $crate::ExceptionHandlers>::serror_current,
+            sync_lower = sym <$handlers as $crate::ExceptionHandlers>::sync_lower,
+            irq_lower = sym <$handlers as $crate::ExceptionHandlers>::irq_lower,
+            fiq_lower = sym <$handlers as $crate::ExceptionHandlers>::fiq_lower,
+            serror_lower = sym <$handlers as $crate::ExceptionHandlers>::serror_lower,
+        );
+    };
+}
