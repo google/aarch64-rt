@@ -33,7 +33,7 @@ use core::arch::asm;
 use core::arch::naked_asm;
 pub use entry::secondary_entry;
 #[cfg(feature = "exceptions")]
-pub use exceptions::ExceptionHandlers;
+pub use exceptions::{ExceptionHandlers, RegisterState, RegisterStateRef};
 #[cfg(all(feature = "initial-pagetable", feature = "el1"))]
 pub use pagetable::DEFAULT_TCR_EL1 as DEFAULT_TCR;
 #[cfg(all(feature = "initial-pagetable", feature = "el2"))]

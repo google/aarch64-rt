@@ -2,7 +2,7 @@
 // This project is dual-licensed under Apache 2.0 and MIT terms.
 // See LICENSE-APACHE and LICENSE-MIT for details.
 
-use core::ptr::NonNull;
+use core::{borrow::Borrow, ops::Deref};
 
 /// The register state saved before calling the exception handler.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,6 +20,48 @@ pub struct RegisterState {
 }
 
 const _: () = assert!(size_of::<RegisterState>() == 8 * 24);
+
+/// A reference to the register state saved when an exception happened.
+#[derive(Debug, Eq, PartialEq)]
+#[repr(transparent)]
+pub struct RegisterStateRef<'a>(&'a mut RegisterState);
+
+impl RegisterStateRef<'_> {
+    /// Returns a mutable reference to the register state.
+    ///
+    /// # Safety
+    ///
+    /// Any changes made to the saved register state made via this reference must not cause
+    /// undefined behaviour when returning from the exception.
+    ///
+    /// Exactly what this means depends on the exception and the context in which it happened, but
+    /// for example changing the ELR to point to an invalid or unexpected location, or changing some
+    /// general-purpose register value which the code doesn't expect to change could cause undefined
+    /// behaviour.
+    pub unsafe fn get_mut(&mut self) -> &mut RegisterState {
+        self.0
+    }
+}
+
+impl AsRef<RegisterState> for RegisterStateRef<'_> {
+    fn as_ref(&self) -> &RegisterState {
+        self.0
+    }
+}
+
+impl Borrow<RegisterState> for RegisterStateRef<'_> {
+    fn borrow(&self) -> &RegisterState {
+        self.0
+    }
+}
+
+impl Deref for RegisterStateRef<'_> {
+    type Target = RegisterState;
+
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
 
 /// Functions to handle aarch64 exceptions.
 ///
@@ -46,25 +88,25 @@ pub trait ExceptionHandlers {
     }
 
     /// Handles synchronous exceptions from a lower exception level.
-    extern "C" fn sync_lower(register_state: NonNull<RegisterState>) {
+    extern "C" fn sync_lower(register_state: RegisterStateRef) {
         _ = register_state;
         panic!("Unexpected synchronous exception from lower EL");
     }
 
     /// Handles IRQs from the a lower exception level.
-    extern "C" fn irq_lower(register_state: NonNull<RegisterState>) {
+    extern "C" fn irq_lower(register_state: RegisterStateRef) {
         _ = register_state;
         panic!("Unexpected IRQ from lower EL");
     }
 
     /// Handles FIQs from the a lower exception level.
-    extern "C" fn fiq_lower(register_state: NonNull<RegisterState>) {
+    extern "C" fn fiq_lower(register_state: RegisterStateRef) {
         _ = register_state;
         panic!("Unexpected FIQ from lower EL");
     }
 
     /// Handles SErrors from a lower exception level.
-    extern "C" fn serror_lower(register_state: NonNull<RegisterState>) {
+    extern "C" fn serror_lower(register_state: RegisterStateRef) {
         _ = register_state;
         panic!("Unexpected SError from lower EL");
     }
