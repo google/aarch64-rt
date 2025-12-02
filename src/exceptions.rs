@@ -2,6 +2,25 @@
 // This project is dual-licensed under Apache 2.0 and MIT terms.
 // See LICENSE-APACHE and LICENSE-MIT for details.
 
+use core::ptr::NonNull;
+
+/// The register state saved before calling the exception handler.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[repr(C)]
+pub struct RegisterState {
+    /// Registers x0-x18.
+    pub registers: [u64; 19],
+    padding: u64,
+    /// Register x29, the Frame Pointer.
+    pub fp: u64,
+    /// Register x30, the Stack Pointer.
+    pub sp: u64,
+    pub elr: usize,
+    pub spsr: u64,
+}
+
+const _: () = assert!(size_of::<RegisterState>() == 8 * 24);
+
 /// Functions to handle aarch64 exceptions.
 ///
 /// Each method has a default implementation which will panic.
@@ -27,22 +46,26 @@ pub trait ExceptionHandlers {
     }
 
     /// Handles synchronous exceptions from a lower exception level.
-    extern "C" fn sync_lower() {
+    extern "C" fn sync_lower(register_state: NonNull<RegisterState>) {
+        _ = register_state;
         panic!("Unexpected synchronous exception from lower EL");
     }
 
     /// Handles IRQs from the a lower exception level.
-    extern "C" fn irq_lower() {
+    extern "C" fn irq_lower(register_state: NonNull<RegisterState>) {
+        _ = register_state;
         panic!("Unexpected IRQ from lower EL");
     }
 
     /// Handles FIQs from the a lower exception level.
-    extern "C" fn fiq_lower() {
+    extern "C" fn fiq_lower(register_state: NonNull<RegisterState>) {
+        _ = register_state;
         panic!("Unexpected FIQ from lower EL");
     }
 
     /// Handles SErrors from a lower exception level.
-    extern "C" fn serror_lower() {
+    extern "C" fn serror_lower(register_state: NonNull<RegisterState>) {
+        _ = register_state;
         panic!("Unexpected SError from lower EL");
     }
 }
@@ -138,12 +161,13 @@ macro_rules! exception_handlers {
  * This also works for exceptions taken from EL0, if we don't care about
  * non-volatile registers.
  *
- * Saving state and jumping to the Rust handler takes 15 instructions, and
+ * Saving state and jumping to the Rust handler takes 16 instructions, and
  * restoring and returning also takes 15 instructions, so we can fit the whole
- * handler in 30 instructions, under the limit of 32.
+ * handler in 31 instructions, under the limit of 32.
  */
 .macro current_exception_spx handler:req el:req
 	save_volatile_to_stack \el
+	mov x0, sp
 	bl \handler
 	restore_volatile_from_stack \el
 	eret
