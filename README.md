@@ -69,40 +69,17 @@ configuration registers.
 ### `exceptions`
 
 Provides an exception vector table, and sets it in the appropriate `vbar` system register for the
-selected exception level. You must provide handlers for each exception like so:
+selected exception level. You must provide handlers for each exception by implementing the
+`ExceptionHandlers` trait and then calling the `exception_handlers!` macro. All methods on
+`ExceptionHandlers` have a default implementation which simply panics, so the simplest
+implementation looks like this:
 
 ```rust
-#[unsafe(no_mangle)]
-extern "C" fn sync_exception_current(_elr: u64, _spsr: u64) {
-}
+exception_handlers!(Exceptions);
 
-#[unsafe(no_mangle)]
-extern "C" fn irq_current(_elr: u64, _spsr: u64) {
-}
+struct Exceptions;
 
-#[unsafe(no_mangle)]
-extern "C" fn fiq_current(_elr: u64, _spsr: u64) {
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn serr_current(_elr: u64, _spsr: u64) {
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn sync_lower(_elr: u64, _spsr: u64) {
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn irq_lower(_elr: u64, _spsr: u64) {
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn fiq_lower(_elr: u64, _spsr: u64) {
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn serr_lower(_elr: u64, _spsr: u64) {
-}
+impl ExceptionHandlers for Exceptions {}
 ```
 
 ### `initial-pagetable`
