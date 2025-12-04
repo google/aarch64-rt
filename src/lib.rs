@@ -31,6 +31,7 @@ pub mod __private {
 use core::arch::asm;
 #[cfg(not(feature = "initial-pagetable"))]
 use core::arch::naked_asm;
+use core::mem::ManuallyDrop;
 pub use entry::secondary_entry;
 #[cfg(feature = "exceptions")]
 pub use exceptions::{ExceptionHandlers, RegisterState, RegisterStateRef};
@@ -45,8 +46,6 @@ pub use pagetable::{
     DEFAULT_MAIR, DEFAULT_SCTLR, DEFAULT_TCR_EL1, DEFAULT_TCR_EL2, DEFAULT_TCR_EL3,
     InitialPagetable,
 };
-
-use core::mem::ManuallyDrop;
 
 #[cfg(not(feature = "initial-pagetable"))]
 #[unsafe(naked)]
@@ -244,11 +243,11 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
 ) -> Result<(), smccc::psci::Error> {
     const {
         assert!(
-            core::mem::size_of::<StartCoreStack<F>>()
-                + 2 * core::mem::size_of::<F>()
-                + 2 * core::mem::align_of::<F>()
+            size_of::<StartCoreStack<F>>()
+                + 2 * size_of::<F>()
+                + 2 * align_of::<F>()
                 + 1024 // trampoline stack frame overhead
-                <= core::mem::size_of::<Stack<N>>(),
+                <= size_of::<Stack<N>>(),
             "the `rust_entry` closure is too big to fit in the core stack"
         );
     }
@@ -256,7 +255,7 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
     let rust_entry = ManuallyDrop::new(rust_entry);
 
     let stack_start = stack.cast::<u8>();
-    let align_offfset = stack_start.align_offset(core::mem::align_of::<F>());
+    let align_offfset = stack_start.align_offset(align_of::<F>());
     let entry_ptr = stack_start
         .wrapping_add(align_offfset)
         .cast::<ManuallyDrop<F>>();
