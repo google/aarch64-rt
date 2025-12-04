@@ -182,36 +182,18 @@ macro_rules! exception_handlers {
 .endm
 
 /**
- * This is a generic handler for exceptions taken at the current EL while using
- * SP0. It behaves similarly to the SPx case by first switching to SPx, doing
- * the work, then switching back to SP0 before returning.
- *
- * Switching to SPx and calling the Rust handler takes 17 instructions. To
- * restore and return we would need need an additional 16 instructions which
- * would take us over the limit of 32, so we instead jump to a separate function
- * to do so. This makes the handler 18 instructions.
- */
-.macro current_exception_sp0 handler:req el:req
-	msr spsel, #1
-	save_volatile_to_stack \el
-	mov x0, sp
-	bl \handler
-	b restore_volatile_from_stack_sp0_\el
-.endm
-
-/**
- * This is a generic handler for exceptions taken at the current EL while using
- * SPx. It saves volatile registers, calls the Rust handler, restores volatile
+ * This is a generic handler for exceptions taken at the current EL. It saves
+ * volatile registers to the stack, calls the Rust handler, restores volatile
  * registers, then returns.
  *
- * This also works for exceptions taken from EL0, if we don't care about
+ * This also works for exceptions taken from lower ELs, if we don't care about
  * non-volatile registers.
  *
  * Saving state and jumping to the Rust handler takes 16 instructions, and
  * restoring and returning also takes 15 instructions, so we can fit the whole
  * handler in 31 instructions, under the limit of 32.
  */
-.macro current_exception_spx handler:req el:req
+.macro current_exception handler:req el:req
 	save_volatile_to_stack \el
 	mov x0, sp
 	bl \handler
@@ -225,91 +207,73 @@ macro_rules! exception_handlers {
 .balign 0x800
 vector_table_\el:
 sync_cur_sp0_\el:
-	current_exception_sp0 {sync_current} \el
+	current_exception {sync_current} \el
 
 .balign 0x80
 irq_cur_sp0_\el:
-	current_exception_sp0 {irq_current} \el
+	current_exception {irq_current} \el
 
 .balign 0x80
 fiq_cur_sp0_\el:
-	current_exception_sp0 {fiq_current} \el
+	current_exception {fiq_current} \el
 
 .balign 0x80
 serr_cur_sp0_\el:
-	current_exception_sp0 {serror_current} \el
+	current_exception {serror_current} \el
 
 .balign 0x80
 sync_cur_spx_\el:
-	current_exception_spx {sync_current} \el
+	current_exception {sync_current} \el
 
 .balign 0x80
 irq_cur_spx_\el:
-	current_exception_spx {irq_current} \el
+	current_exception {irq_current} \el
 
 .balign 0x80
 fiq_cur_spx_\el:
-	current_exception_spx {fiq_current} \el
+	current_exception {fiq_current} \el
 
 .balign 0x80
 serr_cur_spx_\el:
-	current_exception_spx {serror_current} \el
+	current_exception {serror_current} \el
 
 .balign 0x80
 sync_lower_64_\el:
-	current_exception_spx {sync_lower} \el
+	current_exception {sync_lower} \el
 
 .balign 0x80
 irq_lower_64_\el:
-	current_exception_spx {irq_lower} \el
+	current_exception {irq_lower} \el
 
 .balign 0x80
 fiq_lower_64_\el:
-	current_exception_spx {fiq_lower} \el
+	current_exception {fiq_lower} \el
 
 .balign 0x80
 serr_lower_64_\el:
-	current_exception_spx {serror_lower} \el
+	current_exception {serror_lower} \el
 
 .balign 0x80
 sync_lower_32_\el:
-	current_exception_spx {sync_lower} \el
+	current_exception {sync_lower} \el
 
 .balign 0x80
 irq_lower_32_\el:
-	current_exception_spx {irq_lower} \el
+	current_exception {irq_lower} \el
 
 .balign 0x80
 fiq_lower_32_\el:
-	current_exception_spx {fiq_lower} \el
+	current_exception {fiq_lower} \el
 
 .balign 0x80
 serr_lower_32_\el:
-	current_exception_spx {serror_lower} \el
+	current_exception {serror_lower} \el
 
 .endm
 
 vector_table el1
 vector_table el2
 vector_table el3
-
-.section .text.restore_volatile_from_stack_sp0_el1, "ax"
-restore_volatile_from_stack_sp0_el1:
-	restore_volatile_from_stack el1
-	msr spsel, #0
-	eret
-
-.section .text.restore_volatile_from_stack_sp0_el3, "ax"
-restore_volatile_from_stack_sp0_el2:
-	restore_volatile_from_stack el2
-	msr spsel, #0
-	eret
-
-.section .text.restore_volatile_from_stack_sp0_el3, "ax"
-restore_volatile_from_stack_sp0_el3:
-	restore_volatile_from_stack el3
-	msr spsel, #0
-	eret
             "#,
             sync_current = sym <$handlers as $crate::ExceptionHandlers>::sync_current,
             irq_current = sym <$handlers as $crate::ExceptionHandlers>::irq_current,
