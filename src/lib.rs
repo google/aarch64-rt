@@ -212,6 +212,13 @@ impl StackPage {
     }
 }
 
+#[repr(C)]
+#[cfg(feature = "psci")]
+pub(crate) struct StartCoreStack<F> {
+    trampoline_ptr: unsafe extern "C" fn(&mut ManuallyDrop<F>) -> !,
+    entry_ptr: *mut ManuallyDrop<F>,
+}
+
 #[cfg(feature = "psci")]
 /// Issues a PSCI CPU_ON call to start the CPU core with the given MPIDR.
 ///
@@ -237,16 +244,6 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
     stack: *mut Stack<N>,
     rust_entry: F,
 ) -> Result<(), smccc::psci::Error> {
-    #[expect(
-        unused,
-        reason = "the fields are read in the `secondary_entry` assembly code"
-    )]
-    #[repr(C)]
-    struct StartCoreStack<F> {
-        trampoline_ptr: unsafe extern "C" fn(&mut ManuallyDrop<F>) -> !,
-        entry_ptr: *mut ManuallyDrop<F>,
-    }
-
     const {
         assert!(
             core::mem::size_of::<StartCoreStack<F>>()
@@ -260,20 +257,22 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
 
     let rust_entry = ManuallyDrop::new(rust_entry);
 
-    let stack_bottom = stack.cast::<u8>();
-    let align_offfset = stack.align_offset(core::mem::align_of::<F>());
-    let entry_ptr = stack_bottom
+    let stack_start = stack.cast::<u8>();
+    let align_offfset = stack_start.align_offset(core::mem::align_of::<F>());
+    let entry_ptr = stack_start
         .wrapping_add(align_offfset)
         .cast::<ManuallyDrop<F>>();
 
     assert!(stack.is_aligned());
-    let stack_end = stack.wrapping_add(1).cast::<StartCoreStack<F>>();
+    // The stack grows downwards on aarch64, so get a pointer to the end of the stack.
+    let stack_end = stack.wrapping_add(1);
+    let params = stack_end.cast::<StartCoreStack<F>>().wrapping_sub(1);
 
     // Write the trampoline and entry closure, so the assembly entry point can jump to it.
     // SAFETY: Our caller promised that the stack is valid and nothing else will access it.
     unsafe {
         entry_ptr.write(rust_entry);
-        *stack_end.wrapping_sub(1) = StartCoreStack {
+        *params = StartCoreStack {
             trampoline_ptr: trampoline::<F>,
             entry_ptr,
         };

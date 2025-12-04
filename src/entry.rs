@@ -4,7 +4,9 @@
 
 //! Entrypoint code
 
-use core::arch::naked_asm;
+use core::{arch::naked_asm, mem::offset_of};
+
+use crate::StartCoreStack;
 
 /// This is a generic entry point for an image. It carries out the operations required to prepare the
 /// loaded image to be run. Specifically, it zeroes the bss section using registers x25 and above,
@@ -71,12 +73,14 @@ pub unsafe extern "C" fn secondary_entry(stack_end: *mut u64) -> ! {
         "mov sp, x0",
         // Load the trampoline address into x20 and closure address into x0.
         // This is loaded from StartCoreStack.
-        "ldr x20, [sp, #-16]",
-        "ldr x0, [sp, #-8]",
+        "ldr x20, [sp, #{trampoline_ptr_offset}]",
+        "ldr x0, [sp, #{entry_ptr_offset}]",
         // Set the exception vector.
         "bl {set_exception_vector}",
         // Call into Rust trampoline.
         "br x20",
+        trampoline_ptr_offset = const offset_of!(StartCoreStack<()>, trampoline_ptr) as i64 - size_of::<StartCoreStack<()>>() as i64,
+        entry_ptr_offset = const offset_of!(StartCoreStack<()>, entry_ptr) as i64 - size_of::<StartCoreStack<()>>() as i64,
         set_exception_vector = sym crate::set_exception_vector,
     )
 }
