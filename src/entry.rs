@@ -6,6 +6,7 @@
 
 use core::{arch::naked_asm, mem::offset_of};
 
+#[cfg(feature = "psci")]
 use crate::StartCoreStack;
 
 /// This is a generic entry point for an image. It carries out the operations required to prepare the
@@ -61,6 +62,7 @@ unsafe extern "C" fn entry() -> ! {
 /// This requires that an initial stack pointer value be passed in `x0`, and the stack must contain
 /// the address of a Rust entry point to jump to and a parameter value to pass to it.
 #[unsafe(naked)]
+#[cfg(feature = "psci")]
 pub unsafe extern "C" fn secondary_entry(stack_end: *mut u64) -> ! {
     naked_asm!(
         "bl enable_mmu",
