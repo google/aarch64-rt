@@ -6,7 +6,6 @@
 
 use core::{arch::naked_asm, mem::offset_of};
 
-#[cfg(feature = "psci")]
 use crate::StartCoreStack;
 
 /// This is a generic entry point for an image. It carries out the operations required to prepare the
@@ -54,15 +53,14 @@ unsafe extern "C" fn entry() -> ! {
 /// An assembly entry point for secondary cores.
 ///
 /// It will enable the MMU, disable trapping of floating point instructions, initialise the
-/// stack pointer to `stack_end` and then jump to the function pointer at the bottom of the
-/// stack with the u64 value second on the stack as a parameter.
+/// stack pointer to `stack_end` and then jump to the trampoline function pointer at the bottom
+/// of the stack with the closure pointer second on the stack as a parameter.
 ///
 /// # Safety
 ///
 /// This requires that an initial stack pointer value be passed in `x0`, and the stack must contain
 /// the address of a Rust entry point to jump to and a parameter value to pass to it.
 #[unsafe(naked)]
-#[cfg(feature = "psci")]
 pub unsafe extern "C" fn secondary_entry(stack_end: *mut u64) -> ! {
     naked_asm!(
         "bl enable_mmu",
@@ -73,16 +71,20 @@ pub unsafe extern "C" fn secondary_entry(stack_end: *mut u64) -> ! {
         "isb",
         // Set the stack pointer which was passed.
         "mov sp, x0",
-        // Load the trampoline address into x20 and closure address into x0.
+        // Load the closure address into x19 and the trampoline address into x20.
         // This is loaded from StartCoreStack.
+        "ldr x19, [sp, #{entry_ptr_offset}]",
         "ldr x20, [sp, #{trampoline_ptr_offset}]",
-        "ldr x0, [sp, #{entry_ptr_offset}]",
         // Set the exception vector.
         "bl {set_exception_vector}",
+        // Pass the entry point (closure) address to the trampoline function.
+        "mov x0, x19",
         // Call into Rust trampoline.
         "br x20",
-        trampoline_ptr_offset = const offset_of!(StartCoreStack<()>, trampoline_ptr) as i64 - size_of::<StartCoreStack<()>>() as i64,
-        entry_ptr_offset = const offset_of!(StartCoreStack<()>, entry_ptr) as i64 - size_of::<StartCoreStack<()>>() as i64,
+        entry_ptr_offset = const offset_of!(StartCoreStack<()>, entry_ptr) as isize
+            - size_of::<StartCoreStack<()>>() as isize,
+        trampoline_ptr_offset = const offset_of!(StartCoreStack<()>, trampoline_ptr) as isize
+            - size_of::<StartCoreStack<()>>() as isize,
         set_exception_vector = sym crate::set_exception_vector,
     )
 }

@@ -46,7 +46,6 @@ pub use pagetable::{
     InitialPagetable,
 };
 
-#[cfg(feature = "psci")]
 use core::mem::ManuallyDrop;
 
 #[cfg(not(feature = "initial-pagetable"))]
@@ -213,10 +212,9 @@ impl StackPage {
 }
 
 #[repr(C)]
-#[cfg(feature = "psci")]
 pub(crate) struct StartCoreStack<F> {
-    trampoline_ptr: unsafe extern "C" fn(&mut ManuallyDrop<F>) -> !,
     entry_ptr: *mut ManuallyDrop<F>,
+    trampoline_ptr: unsafe extern "C" fn(&mut ManuallyDrop<F>) -> !,
 }
 
 #[cfg(feature = "psci")]
@@ -273,8 +271,8 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
     unsafe {
         entry_ptr.write(rust_entry);
         *params = StartCoreStack {
-            trampoline_ptr: trampoline::<F>,
             entry_ptr,
+            trampoline_ptr: trampoline::<F>,
         };
     };
 
