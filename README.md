@@ -101,6 +101,35 @@ used.
 Adds the `start_core` function to start another CPU core via a PSCI `CPU_ON` call. This adds a
 dependency on the `smccc` crate.
 
+### `relocate`
+
+Relocates binary symbols to the memory offset where the binary was loaded.
+This allows for building binaries that can be loaded at arbitrary locations by
+the bootloader/hypervisor.
+
+To perform relocations, the linker must be instructed to generate a position
+independent executable and to generate relocation entries for text relocations.
+
+These options can be passed to the linker by `rustc` through some manner, e.g.
+a `.cargo/config.toml` file:
+
+```toml
+[target."aarch64-unknown-none"]
+rustflags = [
+  "-C", "relocation-model=pie",
+  "-C", "link-args=-z notext",
+]
+```
+
+Also make sure your image's origin is set to zero in your linker script:
+
+```ld
+MEMORY
+{
+    image : ORIGIN = 0x0, LENGTH = 2M
+}
+```
+
 ## License
 
 Licensed under either of
