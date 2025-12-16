@@ -48,11 +48,16 @@ pub use pagetable::{
 };
 
 /// No-op when the `initial-pagetable` feature isn't enabled.
+///
+/// # Safety
+///
+/// Not really unsafe in this case, but needs to be consistent with the signature when the
+/// `initial-pagetable` feature is enabled.
 #[cfg(not(feature = "initial-pagetable"))]
 #[unsafe(naked)]
 #[unsafe(link_section = ".init")]
 #[unsafe(export_name = "enable_mmu")]
-pub extern "C" fn enable_mmu() {
+pub unsafe extern "C" fn enable_mmu() {
     naked_asm!("ret")
 }
 
@@ -63,7 +68,11 @@ unsafe extern "C" {
     /// This is called automatically from entry point code both for primary and secondary CPUs so
     /// you usually won't need to call this yourself, but is available in case you need to implement
     /// your own assembly entry point.
-    pub safe fn enable_mmu();
+    ///
+    /// # Safety
+    ///
+    /// The initial pagetable must correctly map everything that the program uses.
+    pub unsafe fn enable_mmu();
 }
 
 /// Sets the appropriate vbar to point to our `vector_table`, if the `exceptions` feature is

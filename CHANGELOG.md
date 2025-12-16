@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.4.1
+## 0.4.2
+
+### Fixes
+
+- Made `enable_mmu` unsafe.
+
+## 0.4.1 (yanked)
 
 ### Improvements
 
