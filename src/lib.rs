@@ -47,12 +47,23 @@ pub use pagetable::{
     InitialPagetable,
 };
 
+/// No-op when the `initial-pagetable` feature isn't enabled.
 #[cfg(not(feature = "initial-pagetable"))]
 #[unsafe(naked)]
 #[unsafe(link_section = ".init")]
 #[unsafe(export_name = "enable_mmu")]
-extern "C" fn enable_mmu() {
+pub extern "C" fn enable_mmu() {
     naked_asm!("ret")
+}
+
+#[cfg(feature = "initial-pagetable")]
+unsafe extern "C" {
+    /// Enables the MMU and caches with the initial pagetable.
+    ///
+    /// This is called automatically from entry point code both for primary and secondary CPUs so
+    /// you usually won't need to call this yourself, but is available in case you need to implement
+    /// your own assembly entry point.
+    pub safe fn enable_mmu();
 }
 
 /// Sets the appropriate vbar to point to our `vector_table`, if the `exceptions` feature is
