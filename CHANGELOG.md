@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Improvements
+
+- Made `set_exception_vector` public.
+- Made `enable_mmu` public.
+
 ## 0.4.0
 
 ### Breaking changes
