@@ -8,8 +8,8 @@
 #![no_main]
 
 use aarch64_paging::{
+    descriptor::Attributes,
     mair::{Mair, MairAttribute, NormalMemory},
-    paging::Attributes,
 };
 use aarch64_rt::{
     ExceptionHandlers, InitialPagetable, entry, exception_handlers, initial_pagetable,
