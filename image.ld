@@ -57,7 +57,7 @@ SECTIONS
 	bin_end = .;
 
 	/* The entry point code assumes that .bss is 16-byte aligned. */
-	.bss : ALIGN(16)  {
+	.bss (NOLOAD) : ALIGN(16)  {
 		bss_begin = .;
 		*(.bss.*)
 		*(COMMON)
