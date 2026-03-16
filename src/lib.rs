@@ -302,7 +302,7 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
 
     smccc::psci::cpu_on::<C>(
         mpidr,
-        secondary_entry as usize as _,
+        secondary_entry as *const () as usize as _,
         stack_end as usize as _,
     )
 }
@@ -362,7 +362,7 @@ pub unsafe fn suspend_core<C: smccc::Call>(
     // either `cpu_suspend` returns or the stack pointer is reset by `warm_boot_entry`.
     smccc::psci::cpu_suspend::<C>(
         power_state,
-        warm_boot_entry as u64,
+        warm_boot_entry as *const () as u64,
         (&raw const suspend_context) as u64,
     )
 }
