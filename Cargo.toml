@@ -11,12 +11,12 @@ categories = ["embedded", "no-std"]
 rust-version = "1.88.0"
 
 [dependencies]
-smccc = { version = "0.2.2", optional = true }
+smccc = { version = "0.2.3", optional = true }
 
 [dev-dependencies]
 aarch64-paging = { version = "0.12.1", default-features = false }
 arm-pl011-uart = "0.5.0"
-smccc = "0.2.2"
+smccc = "0.2.3"
 
 [features]
 default = ["exceptions", "initial-pagetable", "psci"]
