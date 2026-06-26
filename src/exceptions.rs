@@ -5,6 +5,9 @@
 use core::{borrow::Borrow, ops::Deref};
 
 /// The register state saved before calling the exception handler.
+///
+/// This includes the general purpose caller-saved registers, frame pointer, link register,
+/// exception link register and saved program state register.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[repr(C)]
 pub struct RegisterState {
