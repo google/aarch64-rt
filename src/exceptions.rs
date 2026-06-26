@@ -13,8 +13,8 @@ pub struct RegisterState {
     padding: u64,
     /// Register x29, the Frame Pointer.
     pub fp: u64,
-    /// Register x30, the Stack Pointer.
-    pub sp: u64,
+    /// Register x30, the Link Register.
+    pub lr: u64,
     pub elr: usize,
     pub spsr: u64,
 }
