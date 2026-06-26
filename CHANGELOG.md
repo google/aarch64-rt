@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- Renamed `RegisterState.sp` to `lr`. The name was incorrect, it was never the stack pointer.
+
 ## 0.4.3
 
 ### Improvements
