@@ -53,6 +53,15 @@ SECTIONS
 		data_end = .;
 	} >image
 
+	/*
+	 * Keep track of relocations
+	 */
+	.rela.dyn : ALIGN(8) {
+		__rela_start = .;
+		*(.rela .rela*)
+		__rela_end = .;
+	} >image
+
 	/* Everything beyond this point will not be included in the binary. */
 	bin_end = .;
 
