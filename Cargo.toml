@@ -24,6 +24,7 @@ el1 = []
 el2 = []
 el3 = []
 exceptions = []
+relocate = []
 initial-pagetable = []
 psci = ["dep:smccc"]
 
