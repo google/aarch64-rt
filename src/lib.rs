@@ -256,6 +256,9 @@ pub(crate) struct StartCoreStack<F> {
 /// time. It must be mapped both for the current core to write to it (to pass initial parameters)
 /// and in the initial page table which the core being started will used, with the same memory
 /// attributes for both.
+///
+/// Calling [`smccc::psci::cpu_on::<C>`](smccc::psci::cpu_on) must conform to PSCI `CPU_ON`
+/// semantics (in particular, it must not start the target core if it returns an error).
 // TODO: change `F` generic bounds to `FnOnce() -> !` when the never type is stabilized:
 // https://github.com/rust-lang/rust/issues/35121
 pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: usize>(
@@ -274,6 +277,8 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
         );
     }
 
+    assert!(stack.is_aligned());
+
     let rust_entry = ManuallyDrop::new(rust_entry);
 
     let stack_start = stack.cast::<u8>();
@@ -282,7 +287,6 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
         .wrapping_add(align_offfset)
         .cast::<ManuallyDrop<F>>();
 
-    assert!(stack.is_aligned());
     // The stack grows downwards on aarch64, so get a pointer to the end of the stack.
     let stack_end = stack.wrapping_add(1);
     let params = stack_end.cast::<StartCoreStack<F>>().wrapping_sub(1);
@@ -300,11 +304,22 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
     // Wait for the stores above to complete before starting the secondary CPU core.
     dsb_st();
 
-    smccc::psci::cpu_on::<C>(
+    let result = smccc::psci::cpu_on::<C>(
         mpidr,
         secondary_entry as *const () as usize as _,
         stack_end as usize as _,
-    )
+    );
+
+    if result.is_err() {
+        // SAFETY: `cpu_on` failed, so under PSCI semantics the secondary core was not started and
+        // will not access `stack`. `entry_ptr` is valid, aligned, exclusively accessible here, and
+        // holds the initialized `ManuallyDrop<F>` written above, which is never accessed again.
+        unsafe {
+            ManuallyDrop::drop(&mut *entry_ptr);
+        }
+    }
+
+    result
 }
 
 #[cfg(feature = "psci")]

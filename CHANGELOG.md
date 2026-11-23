@@ -6,6 +6,10 @@
 
 - Renamed `RegisterState.sp` to `lr`. The name was incorrect, it was never the stack pointer.
 
+### Fixes
+
+- Drop `rust_entry` in `start_core` if the PSCI `CPU_ON` call fails instead of leaking it.
+
 ## 0.4.3
 
 ### Improvements
