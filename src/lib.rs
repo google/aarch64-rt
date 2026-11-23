@@ -245,10 +245,6 @@ pub(crate) struct StartCoreStack<F> {
 /// floating point instructions, initialise the stack pointer to the given value, and then jump to
 /// the given Rust entry point function, passing it the given argument value.
 ///
-/// The closure passed as `rust_entry` **should never return**. Because the
-/// [never type has not been stabilized](https://github.com/rust-lang/rust/issues/35121)), this
-/// cannot be enforced by the type system yet.
-///
 /// # Safety
 ///
 /// `stack` must point to a region of memory which is reserved for this core's stack. It must remain
@@ -256,9 +252,7 @@ pub(crate) struct StartCoreStack<F> {
 /// time. It must be mapped both for the current core to write to it (to pass initial parameters)
 /// and in the initial page table which the core being started will used, with the same memory
 /// attributes for both.
-// TODO: change `F` generic bounds to `FnOnce() -> !` when the never type is stabilized:
-// https://github.com/rust-lang/rust/issues/35121
-pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: usize>(
+pub unsafe fn start_core<C: smccc::Call, F: FnOnce() -> ! + Send + 'static, const N: usize>(
     mpidr: u64,
     stack: *mut Stack<N>,
     rust_entry: F,
@@ -314,15 +308,13 @@ pub unsafe fn start_core<C: smccc::Call, F: FnOnce() + Send + 'static, const N: 
 ///
 /// This calls [`ManuallyDrop::take`] on the provided argument, so this function must be
 /// called at most once for a given instance of `F`.
-// TODO: change `F` generic bounds to `FnOnce() -> !` when the never type is stabilized:
-// https://github.com/rust-lang/rust/issues/35121
-unsafe extern "C" fn trampoline<F: FnOnce() + Send + 'static>(entry: &mut ManuallyDrop<F>) -> ! {
+unsafe extern "C" fn trampoline<F: FnOnce() -> ! + Send + 'static>(
+    entry: &mut ManuallyDrop<F>,
+) -> ! {
     // SAFETY: the trampoline function is only ever called once after creating ManuallyDrop
     // instance, so we won't call ManuallyDrop::take more than once.
     let entry = unsafe { ManuallyDrop::take(entry) };
-    entry();
-
-    panic!("rust_entry function passed to start_core should never return");
+    entry()
 }
 
 /// Data synchronisation barrier that waits for stores to complete, for the full system.

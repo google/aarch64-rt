@@ -5,6 +5,11 @@
 ### Breaking changes
 
 - Renamed `RegisterState.sp` to `lr`. The name was incorrect, it was never the stack pointer.
+- Updated `start_core` to take `FnOnce() -> !` instead of `FnOnce()`. This
+  shouldn't change any user's code because it was already documented that the
+  closure should never return, but it's technically a breaking change from the
+  type system perspective.
+- Updated MSRV to Rust 1.100.0.
 
 ## 0.4.3
 
